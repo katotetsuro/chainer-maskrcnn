@@ -71,7 +71,7 @@ class COCOMaskLoader(chainer.dataset.DatasetMixin):
         return True
         
     def get_example(self, i):
-        print(i/self.length)
+#        print(i/self.length)
         file_name, img_id = self.img_infos[i]
 #        img_info = self.imgs[i]
 #        file_name = img_info['file_name']

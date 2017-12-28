@@ -90,7 +90,7 @@ def main(args=None):
     train_data = TransformDataset(coco_train_data, Transform(faster_rcnn))
 
     train_iter = chainer.iterators.SerialIterator(
-        train_data, batch_size=1, repeat=True, shuffle=True)
+        train_data, batch_size=1, repeat=True, shuffle=False)
 #     test_iter = chainer.iterators.SerialIterator(
 #         coco_test_data, batch_size=1, repeat=False, shuffle=False)
     updater = chainer.training.updater.StandardUpdater(
