@@ -5,7 +5,7 @@ from os.path import join
 import chainer
 from chainercv.utils import read_image
 from pycocotools.coco import COCO
-
+from PIL import Image
 
 # だんだんカオスになってきたけど、YOLOv2のときに作ったCOCOBoxLoaderをベースに
 # chainercv形式かつinstance maskを作った！
@@ -40,14 +40,12 @@ class COCOMaskLoader(chainer.dataset.DatasetMixin):
         print('after filter: {}'.format(len(img_ids)))
         
         shuffle(img_ids)
-        self.imgs = self.coco.loadImgs(img_ids)
-        self.is_val = split == 'val'
+        self.img_infos = [ (i['file_name'], i['id']) for i in self.coco.loadImgs(img_ids)]
+        # len(self.imgs)を呼ぶたびにメモリ使用量が増えるという罠?
+        self.length = len(self.img_infos)
     
     def __len__(self):
-        if self.is_val:
-            return 1000
-        else:
-            return len(self.imgs)
+        return self.length
         
     # 少なくとも１つ十分大きいものがあればOKとするフィルタ
     def _contain_large_enough_annotation(self, img_id, min_w=10, min_h=10):
@@ -73,10 +71,20 @@ class COCOMaskLoader(chainer.dataset.DatasetMixin):
         return True
         
     def get_example(self, i):
-        img_info = self.imgs[i]
-        file_name = img_info['file_name']
+        print(i/self.length)
+        file_name, img_id = self.img_infos[i]
+#        img_info = self.imgs[i]
+#        file_name = img_info['file_name']
+#        with open(join(self.img_dir, file_name), 'rb') as f:
+#            tmp = Image.open(f)
+#            if tmp.mode == 'L':
+#                tmp = tmp.convert('RGB')
+#            tmp.load() # 遅延読み込みではなく、このコンテキスト内で読み切る
+#            img = np.array(tmp, dtype=np.float32).transpose((2, 0, 1))
+#            tmp = None
         img = read_image(join(self.img_dir, file_name), color=True)
-        anns = self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_info['id']))
+        assert img.shape[0] == 3
+        anns = self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))
         gt_boxes = []
         gt_masks = []
         gt_labels = []
