@@ -4,3 +4,4 @@ result
 data/**/*.jpg
 data/**/*.json
 *.zip
+*.swp
