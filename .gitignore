@@ -1,0 +1,6 @@
+.ipynb_checkpoints
+*.ipynb
+result
+data/**/*.jpg
+data/**/*.json
+*.zip
