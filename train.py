@@ -12,8 +12,6 @@ from COCODataset import COCOMaskLoader
 
 import argparse
 from os.path import exists
-import gc
-import tracemalloc
 
 class Transform(object):
 
@@ -34,22 +32,8 @@ class Transform(object):
 
         return np.array(img), bbox, label, label_img, scale
 
-def memory_profile(trainer):
-    gc.collect()
-    print(gc.get_stats())
-    snapshot = tracemalloc.take_snapshot()
-    snapshot.dump('debug/dump_{}'.format(trainer.updater.iteration))
 
-import objgraph
-def breakpoint(trainer):
-#    import pdb; pdb.set_trace()
-    print('memory----------------------------------------------------------')
-    objgraph.show_growth()
-    import pdb; pdb.set_trace()
-
-#@profile
-def main(args=None):
-#    tracemalloc.start()
+def main():
     parser = argparse.ArgumentParser(
         description='Mask R-CNN')
     parser.add_argument('--gpu', '-g', type=int, default=0)
@@ -59,12 +43,9 @@ def main(args=None):
     parser.add_argument('--step_size', '-ss', type=int, default=50000)
     parser.add_argument('--iteration', '-i', type=int, default=500000)
     parser.add_argument('--weight', '-w', type=str, default='')
-    parser.add_argument('--label_file', '-f', type=str, default='YOLOv2/data/label_coco.txt')
+    parser.add_argument('--label_file', '-f', type=str, default='data/label_coco.txt')
     
-    if args:
-        args = parser.parse_args(args)
-    else:
-        args = parser.parse_args()
+    args = parser.parse_args()
     
     print('lr:{}'.format(args.lr))
     print('output:{}'.format(args.out))
@@ -91,8 +72,6 @@ def main(args=None):
 
     train_iter = chainer.iterators.SerialIterator(
         train_data, batch_size=1, repeat=True, shuffle=False)
-#     test_iter = chainer.iterators.SerialIterator(
-#         coco_test_data, batch_size=1, repeat=False, shuffle=False)
     updater = chainer.training.updater.StandardUpdater(
         train_iter, optimizer, device=0)
     
@@ -101,13 +80,12 @@ def main(args=None):
 
     trainer.extend(
             extensions.snapshot_object(model.faster_rcnn, 'model_iter_{.updater.iteration}.npz'),
-            trigger=(5000, 'iteration'))
+            trigger=(10000, 'iteration'))
 
     trainer.extend(extensions.ExponentialShift('lr', 0.1),
                    trigger=(2, 'epoch'))
 
     log_interval = 100, 'iteration'
-    plot_interval = 3000, 'iteration'
     print_interval = 100, 'iteration'
 
     trainer.extend(chainer.training.extensions.observe_lr(),
@@ -121,21 +99,12 @@ def main(args=None):
          'main/roi_cls_loss',
          'main/rpn_loc_loss',
          'main/rpn_cls_loss',
-         'validation/main/map',
          ]), trigger=print_interval)
     trainer.extend(extensions.ProgressBar(update_interval=200))
     trainer.extend(extensions.dump_graph('main/loss'))
-#    trainer.extend(breakpoint, trigger=(100, 'iteration'))
- #   trainer.extend(memory_profile, trigger=(500, 'iteration'))
     
     trainer.run()
 
-
-# In[ ]:
-
-main([
-        '-o', 'result/leak',
-        '-w', 'result/fix_activation_2/model_iter_5000.npz'
-    ])
-
+if __name__ == '__main__':
+    main()
 
