@@ -34,7 +34,8 @@ class T():
 
 def train_loop():
     model = SimpleChain()
-    model.to_gpu()
+    if chainer.cuda.available:
+        model.to_gpu()
     
     optimizer = chainer.optimizers.MomentumSGD(0.001)
     optimizer.setup(model)
@@ -45,7 +46,7 @@ def train_loop():
         with open('coco_data.pkl', 'rb') as f:
             train_data = _pickle.load(f)
     else:
-        train_data = COCOMaskLoader()
+        train_data = COCOMaskLoader(split='val')
         print('次回のために書き出します')
         with open('coco_data.pkl', 'wb') as f:
             _pickle.dump(train_data, f)
@@ -53,7 +54,7 @@ def train_loop():
     train_data = chainer.datasets.TransformDataset(train_data, T())
     train_iter = chainer.iterators.SerialIterator(train_data, 1, shuffle=False)
 
-    updater = training.StandardUpdater(train_iter, optimizer, device=0)
+    updater = training.StandardUpdater(train_iter, optimizer, device=chainer.cuda.get_device().id)
     trainer = training.Trainer(updater, (100, 'epoch'), out='result/leak')
     trainer.extend(extensions.LogReport(trigger=(100, 'iteration')))
     trainer.extend(extensions.PrintReport(['epoch', 'main/loss']))

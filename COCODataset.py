@@ -12,7 +12,7 @@ from PIL import Image
 from random import shuffle
 
 class COCOMaskLoader(chainer.dataset.DatasetMixin):
-    def __init__(self, anno_dir='annotations', img_dir='data', split='train',
+    def __init__(self, anno_dir='data/annotations', img_dir='data', split='train',
                  data_type='2014', category_filter=None):
         if split not in ['train', 'val', 'validation']:
             raise ValueError(
@@ -24,7 +24,7 @@ class COCOMaskLoader(chainer.dataset.DatasetMixin):
         ann_file='%s/instances_%s%s.json'%(anno_dir, split, data_type)
         self.coco = COCO(ann_file)
 
-        self.img_dir = '{}/{}/{}{}'.format(img_dir, split, split, data_type)
+        self.img_dir = '{}/{}{}'.format(img_dir, split, data_type)
         print('load jpg images from {}'.format(self.img_dir))
         target_cats = [] if category_filter is None else category_filter
         self.cat_ids = self.coco.getCatIds(catNms=target_cats)
