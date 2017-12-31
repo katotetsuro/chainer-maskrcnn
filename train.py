@@ -60,8 +60,10 @@ def main():
     model = MaskRCNNTrainChain(faster_rcnn)
     if exists(args.weight):
         chainer.serializers.load_npz(args.weight , model.faster_rcnn)
-    chainer.cuda.get_device_from_id(args.gpu).use()
-    model.to_gpu()
+
+    if args.gpu >= 0:
+        chainer.cuda.get_device_from_id(args.gpu).use()
+        model.to_gpu()
         
     optimizer = chainer.optimizers.MomentumSGD(lr=args.lr, momentum=0.9)
     optimizer.setup(model)
@@ -73,7 +75,7 @@ def main():
     train_iter = chainer.iterators.SerialIterator(
         train_data, batch_size=1, repeat=True, shuffle=False)
     updater = chainer.training.updater.StandardUpdater(
-        train_iter, optimizer, device=0)
+        train_iter, optimizer, device=args.gpu)
     
     trainer = training.Trainer(
         updater, (args.iteration, 'iteration'), args.out)
