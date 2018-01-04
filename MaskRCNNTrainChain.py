@@ -86,13 +86,5 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
                                  'loss': loss},
                                 self)
         
-        #debug 入力画像、bbox,label, maskを返して中身をみたい
-#         e = ValueError('デバッグしたいです')
-#         e.di = imgs
-#         e.dloc = gt_roi_loc
-#         e.roi = sample_roi
-#         e.dl = gt_roi_label
-#         e.dm = gt_roi_mask     
-#         raise e
         
         return loss
