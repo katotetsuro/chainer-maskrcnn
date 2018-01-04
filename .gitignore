@@ -7,3 +7,4 @@ data/**/*.jpg
 data/**/*.json
 *.zip
 *.swp
+.DS_Store
