@@ -11,6 +11,7 @@ from chainercv.transforms.image.resize import resize
 from chainercv.utils import non_maximum_suppression
 from C4Backbone import C4Backbone
 from ResnetRoIMaskHead import ResnetRoIMaskHead
+import cv2
 
 class MaskRCNNResnet50(FasterRCNN):
     feat_stride = 16
@@ -120,12 +121,72 @@ class MaskRCNNResnet50(FasterRCNN):
                 raw_cls_bbox = cuda.to_cpu(cls_bbox)
                 raw_prob = cuda.to_cpu(prob)
                 mask = cuda.to_cpu(mask)
-
-                bbox, label, score, mask = self._suppress(raw_cls_bbox, raw_prob, mask)
+                raw_roi = cuda.to_cpu(roi)
+                
+                # roiとcls_bboxを見比べて、maskをroiのサイズにリサイズ -> cls_bboxの部分だけ使うという処理に変更する
+                bbox, label, score, mask, roi = self._suppress(raw_cls_bbox, raw_prob, mask, raw_roi)
+                
+                # maskは修正前のboxで予測しているので、その大きさにresizeしたあと、修正後のbboxに貼り付ける
+                mask_per_image = list()
+                for i, (b, m, r) in enumerate(zip(bbox, mask, roi)):
+                    print(r, '->', b)
+                    # 修正前のbox                    
+                    w = r[3] - r[1]
+                    h = r[2] - r[0]
+                    m = cv2.resize(m, (w, h)) * 255
+                    m = m.astype(np.uint8)
+                    _, m = cv2.threshold(m, 100, 255, cv2.THRESH_BINARY)
+                    
+                    # ここめっちゃダサいんだけど、場合分けする
+                    l = b - r
+                    print(l)
+                    l = l.astype(np.int32)
+                    if l[0] < 0:
+                        print('y方向へのpadding +. before:', m.shape)
+                        pad = np.zeros((-l[0], m.shape[1]), dtype=np.uint8)
+                        m = np.concatenate([pad, m], axis=0)
+                        print('after:', m.shape)
+                    else:
+                        print('y方向へのpadding -. before:', m.shape)
+                        m = m[l[0]:, :]
+                        print('after:', m.shape)
+                        
+                    if l[1] < 0:
+                        print('x方向へのpadding +. before:', m.shape)
+                        pad = np.zeros((m.shape[0], -l[1]), dtype=np.uint8)
+                        m = np.concatenate([pad, m], axis=1)
+                        print('after:', m.shape)
+                    else:
+                        print('x方向へのpadding -. before:', m.shape)
+                        m = m[:, l[1]:]
+                        print('after:', m.shape)
+                        
+                    if l[2] < 0:
+                        print('y方向へのpadding -. before:', m.shape)
+                        m = m[:l[2], :]
+                        print('after:', m.shape)
+                    else:
+                        print('y方向へのpadding +. before:', m.shape)
+                        pad = np.zeros((l[2], m.shape[1]), dtype=np.uint8)
+                        m = np.concatenate([m, pad], axis=0)
+                        print('after:', m.shape)
+                        
+                    if l[3] < 0:
+                        print('x方向へのpadding -. before:', m.shape)
+                        m = m[:, :l[3]]
+                        print('after:', m.shape)
+                    else:
+                        print('x方向へのpadding +. before:', m.shape)
+                        pad = np.zeros((m.shape[0], l[3]), dtype=np.uint8)
+                        m = np.concatenate([m, pad], axis=1)
+                        print('after:', m.shape)
+                        
+                    print(m.shape, int(b[2]-b[0]), int(b[3]-b[1]))
+                    mask_per_image.append(m)
                 bboxes.append(bbox)
                 labels.append(label)
                 scores.append(score)
-                masks.append(mask)
+                masks.append(mask_per_image)
 
             return bboxes, labels, scores, masks
         
@@ -147,14 +208,16 @@ class MaskRCNNResnet50(FasterRCNN):
     
         return img
     
-    def _suppress(self, raw_cls_bbox, raw_prob, raw_mask):
+    def _suppress(self, raw_cls_bbox, raw_prob, raw_mask, raw_roi):
         bbox = list()
         label = list()
         score = list()
         roi_mask = list()
+        roi = list()
         # skip cls_id = 0 because it is the background class
         # -> maskは0から始まるから、l-1を使う
-        for l in range(1, self.n_class):
+        # -> あーしまったTrainChainで最後のクラスToothBlushは範囲外になっておるわ・・
+        for l in range(1, self.n_class-1):
             cls_bbox_l = raw_cls_bbox.reshape((-1, self.n_class, 4))[:, l, :]
             prob_l = raw_prob[:, l]
             mask = prob_l > self.score_thresh
@@ -166,10 +229,14 @@ class MaskRCNNResnet50(FasterRCNN):
             # The labels are in [0, self.n_class - 2].
             label.append((l - 1) * np.ones((len(keep),)))
             score.append(prob_l[keep])
-            roi_mask.append(raw_mask[keep, l-1, :, :])
+            mask_l = raw_mask[mask, l]
+            roi_mask.append(mask_l[keep])
+            raw_roi_l = raw_roi[:, l, :][mask]
+            roi.append(raw_roi_l[keep])
             
         bbox = np.concatenate(bbox, axis=0).astype(np.float32)
         label = np.concatenate(label, axis=0).astype(np.int32)
         score = np.concatenate(score, axis=0).astype(np.float32)
         roi_mask = np.concatenate(roi_mask, axis=0)
-        return bbox, label, score, roi_mask
+        roi = np.concatenate(roi, axis=0)
+        return bbox, label, score, roi_mask, roi
