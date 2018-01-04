@@ -129,7 +129,6 @@ class MaskRCNNResnet50(FasterRCNN):
                 # maskは修正前のboxで予測しているので、その大きさにresizeしたあと、修正後のbboxに貼り付ける
                 mask_per_image = list()
                 for i, (b, m, r) in enumerate(zip(bbox, mask, roi)):
-                    print(r, '->', b)
                     # 修正前のbox                    
                     w = r[3] - r[1]
                     h = r[2] - r[0]
@@ -139,49 +138,31 @@ class MaskRCNNResnet50(FasterRCNN):
                     
                     # ここめっちゃダサいんだけど、場合分けする
                     l = b - r
-                    print(l)
                     l = l.astype(np.int32)
                     if l[0] < 0:
-                        print('y方向へのpadding +. before:', m.shape)
                         pad = np.zeros((-l[0], m.shape[1]), dtype=np.uint8)
                         m = np.concatenate([pad, m], axis=0)
-                        print('after:', m.shape)
                     else:
-                        print('y方向へのpadding -. before:', m.shape)
                         m = m[l[0]:, :]
-                        print('after:', m.shape)
                         
                     if l[1] < 0:
-                        print('x方向へのpadding +. before:', m.shape)
                         pad = np.zeros((m.shape[0], -l[1]), dtype=np.uint8)
                         m = np.concatenate([pad, m], axis=1)
-                        print('after:', m.shape)
                     else:
-                        print('x方向へのpadding -. before:', m.shape)
                         m = m[:, l[1]:]
-                        print('after:', m.shape)
                         
                     if l[2] < 0:
-                        print('y方向へのpadding -. before:', m.shape)
                         m = m[:l[2], :]
-                        print('after:', m.shape)
                     else:
-                        print('y方向へのpadding +. before:', m.shape)
                         pad = np.zeros((l[2], m.shape[1]), dtype=np.uint8)
                         m = np.concatenate([m, pad], axis=0)
-                        print('after:', m.shape)
                         
                     if l[3] < 0:
-                        print('x方向へのpadding -. before:', m.shape)
                         m = m[:, :l[3]]
-                        print('after:', m.shape)
                     else:
-                        print('x方向へのpadding +. before:', m.shape)
                         pad = np.zeros((m.shape[0], l[3]), dtype=np.uint8)
                         m = np.concatenate([m, pad], axis=1)
-                        print('after:', m.shape)
                         
-                    print(m.shape, int(b[2]-b[0]), int(b[3]-b[1]))
                     mask_per_image.append(m)
                 bboxes.append(bbox)
                 labels.append(label)
