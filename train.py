@@ -4,6 +4,8 @@ from chainer import training
 from chainer.training import extensions
 from chainer.datasets import TransformDataset
 from chainercv import transforms
+from chainerui.utils import save_args
+from chainerui.extensions import CommandsExtension
 import cv2
 import numpy as np
 from MaskRCNNTrainChain import MaskRCNNTrainChain
@@ -104,6 +106,9 @@ def main():
          ]), trigger=print_interval)
     trainer.extend(extensions.ProgressBar(update_interval=200))
     trainer.extend(extensions.dump_graph('main/loss'))
+
+    save_args(args, args.out)
+    trainer.extend(CommandsExtension(), trigger=(100, 'iteration'))
     
     trainer.run()
 
