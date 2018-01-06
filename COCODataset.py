@@ -1,14 +1,10 @@
 import numpy as np
 import os
 from os.path import join
-
 import chainer
 from chainercv.utils import read_image
 from pycocotools.coco import COCO
 from PIL import Image
-
-# だんだんカオスになってきたけど、YOLOv2のときに作ったCOCOBoxLoaderをベースに
-# chainercv形式かつinstance maskを作った！
 from random import shuffle
 
 
@@ -79,17 +75,7 @@ class COCOMaskLoader(chainer.dataset.DatasetMixin):
         return True
 
     def get_example(self, i):
-        #        print(i/self.length)
         file_name, img_id = self.img_infos[i]
-        #        img_info = self.imgs[i]
-        #        file_name = img_info['file_name']
-        #        with open(join(self.img_dir, file_name), 'rb') as f:
-        #            tmp = Image.open(f)
-        #            if tmp.mode == 'L':
-        #                tmp = tmp.convert('RGB')
-        #            tmp.load() # 遅延読み込みではなく、このコンテキスト内で読み切る
-        #            img = np.array(tmp, dtype=np.float32).transpose((2, 0, 1))
-        #            tmp = None
         img = read_image(join(self.img_dir, file_name), color=True)
         assert img.shape[0] == 3
         anns = self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))
