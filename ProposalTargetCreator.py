@@ -4,21 +4,26 @@ from chainercv.links.model.faster_rcnn.utils.bbox2loc import bbox2loc
 from chainercv.utils.bbox.bbox_iou import bbox_iou
 import cv2
 
+
 # GroundTruthと近いbox, label, maskだけをフィルタリングする
 class ProposalTargetCreator(object):
-
     def __init__(self,
                  n_sample=128,
-                 pos_ratio=0.25, pos_iou_thresh=0.5,
-                 neg_iou_thresh_hi=0.5, neg_iou_thresh_lo=0.0
-                 ):
+                 pos_ratio=0.25,
+                 pos_iou_thresh=0.5,
+                 neg_iou_thresh_hi=0.5,
+                 neg_iou_thresh_lo=0.0):
         self.n_sample = n_sample
         self.pos_ratio = pos_ratio
         self.pos_iou_thresh = pos_iou_thresh
         self.neg_iou_thresh_hi = neg_iou_thresh_hi
         self.neg_iou_thresh_lo = neg_iou_thresh_lo
 
-    def __call__(self, roi, bbox, label, mask,
+    def __call__(self,
+                 roi,
+                 bbox,
+                 label,
+                 mask,
                  loc_normalize_mean=(0., 0., 0., 0.),
                  loc_normalize_std=(0.1, 0.1, 0.2, 0.2)):
         xp = cuda.get_array_module(roi)
@@ -51,8 +56,8 @@ class ProposalTargetCreator(object):
         neg_index = np.where((max_iou < self.neg_iou_thresh_hi) &
                              (max_iou >= self.neg_iou_thresh_lo))[0]
         neg_roi_per_this_image = self.n_sample - pos_roi_per_this_image
-        neg_roi_per_this_image = int(min(neg_roi_per_this_image,
-                                         neg_index.size))
+        neg_roi_per_this_image = int(
+            min(neg_roi_per_this_image, neg_index.size))
         if neg_index.size > 0:
             neg_index = np.random.choice(
                 neg_index, size=neg_roi_per_this_image, replace=False)
@@ -65,18 +70,22 @@ class ProposalTargetCreator(object):
 
         # Compute offsets and scales to match sampled RoIs to the GTs.
         gt_roi_loc = bbox2loc(sample_roi, bbox[gt_assignment[keep_index]])
-        gt_roi_loc = ((gt_roi_loc - np.array(loc_normalize_mean, np.float32)
-                       ) / np.array(loc_normalize_std, np.float32))
-        
+        gt_roi_loc = ((gt_roi_loc - np.array(loc_normalize_mean, np.float32)) /
+                      np.array(loc_normalize_std, np.float32))
+
         # https://engineer.dena.jp/2017/12/chainercvmask-r-cnn.html
-        gt_roi_mask=[]
+        gt_roi_mask = []
         _, h, w = mask.shape
         masksize = 14
-        for i , idx in enumerate(gt_assignment[pos_index]):
-            A=mask[idx, np.max((int(sample_roi[i,0]),0)):np.min((int(sample_roi[i,2]),h)),        
-                  np.max((int(sample_roi[i,1]),0)):np.min((int(sample_roi[i,3]),w))]
-            gt_roi_mask.append(cv2.resize(A, (masksize,masksize)).astype(np.int32))
-            
+        for i, idx in enumerate(gt_assignment[pos_index]):
+            A = mask[idx,
+                     np.max((int(sample_roi[i, 0]),
+                             0)):np.min((int(sample_roi[i, 2]), h)),
+                     np.max((int(sample_roi[i, 1]),
+                             0)):np.min((int(sample_roi[i, 3]), w))]
+            gt_roi_mask.append(
+                cv2.resize(A, (masksize, masksize)).astype(np.int32))
+
         gt_roi_mask = xp.array(gt_roi_mask)
 
         if xp != np:
