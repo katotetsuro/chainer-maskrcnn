@@ -46,6 +46,7 @@ def main():
     parser.add_argument('--weight', '-w', type=str, default='')
     parser.add_argument(
         '--label_file', '-f', type=str, default='data/label_coco.txt')
+    parser.add_argument('--head_arch', '-a', type=str, default='res5')
 
     args = parser.parse_args()
 
@@ -53,11 +54,14 @@ def main():
     print('output:{}'.format(args.out))
     print('weight:{}'.format(args.weight))
     print('label file:{}'.format(args.label_file))
+    print('iteration::{}'.format(args.iteration))
+    print('head architecture:{}'.format(args.head_arch))
 
     with open(args.label_file, "r") as f:
         labels = f.read().strip().split("\n")
 
-    faster_rcnn = MaskRCNNResnet50(n_fg_class=len(labels))
+    faster_rcnn = MaskRCNNResnet50(
+        n_fg_class=len(labels), head_arch=args.head_arch)
     faster_rcnn.use_preset('evaluate')
     model = MaskRCNNTrainChain(faster_rcnn)
     if exists(args.weight):
