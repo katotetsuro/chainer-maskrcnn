@@ -11,6 +11,7 @@ from chainercv.transforms.image.resize import resize
 from chainercv.utils import non_maximum_suppression
 from C4Backbone import C4Backbone
 from ResnetRoIMaskHead import ResnetRoIMaskHead
+from LightRoIMaskHead import LightRoIMaskHead
 import cv2
 
 
@@ -27,7 +28,8 @@ class MaskRCNNResnet50(FasterRCNN):
                  rpn_initialW=None,
                  loc_initialW=None,
                  score_initialW=None,
-                 proposal_creator_params={}):
+                 proposal_creator_params={},
+                 head_arch='res5'):
         if n_fg_class is None:
             raise ValueError(
                 'The n_fg_class needs to be supplied as an argument')
@@ -51,13 +53,27 @@ class MaskRCNNResnet50(FasterRCNN):
             proposal_creator_params=proposal_creator_params,
         )
 
-        head = ResnetRoIMaskHead(
-            n_fg_class + 1,
-            roi_size=7,
-            spatial_scale=1. / self.feat_stride,
-            loc_initialW=loc_initialW,
-            score_initialW=score_initialW,
-            mask_initialW=chainer.initializers.Normal(0.01))
+        if head_arch == 'res5':
+            head = ResnetRoIMaskHead(
+                n_fg_class + 1,
+                roi_size=7,
+                spatial_scale=1. / self.feat_stride,
+                loc_initialW=loc_initialW,
+                score_initialW=score_initialW,
+                mask_initialW=chainer.initializers.Normal(0.01))
+
+        elif head_arch == 'light':
+            print('Light-Head RCNNの実装を使います')
+            head = LightRoIMaskHead(
+                n_fg_class + 1,
+                roi_size=7,
+                spatial_scale=1. / self.feat_stride,
+                loc_initialW=loc_initialW,
+                score_initialW=score_initialW,
+                mask_initialW=chainer.initializers.Normal(0.01))
+        else:
+            raise ValueError(
+                'unknown head archtecture specified. {}'.format(head_arch))
 
         super().__init__(
             extractor,
