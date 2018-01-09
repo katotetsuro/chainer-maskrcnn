@@ -1,8 +1,13 @@
 # chainer-maskrcnn
 
-original paper http://arxiv.org/abs/1703.06870
+## original paper
+Mask R-CNN http://arxiv.org/abs/1703.06870
+
+Light-Head R-CNN: http://arxiv.org/abs/1711.07264
 
 # 現状
+
+※Light-Headバージョンと比較を作って更新します
 
 ![](imgs/1.jpg)
 ![](imgs/45.jpg)
@@ -10,7 +15,8 @@ original paper http://arxiv.org/abs/1703.06870
 
 # todo、問題点など
 
-- 論文の中で言うC4 backbone(Resnet50ベース)しか実装していません
+- backbone architectureは、論文の中で言うC4(Resnet50ベース)しか実装していません
+- head architectureとして、試しにLight Head RCNNで提案されているものを実装してみました
 - ROI Alignを実装していません
 - RPNが出力したROIに対してMask推定をするのと並行して、ROIの位置修正（回帰）を行っているので、出力したMaskと最終的なBounding Boxが一致していません（ex.キリンのマスクが右の方でバッサリ切れている)
 - 学習を進めるとどんどんメモリ使用量が増えていく問題があるので、現在調査中です。
