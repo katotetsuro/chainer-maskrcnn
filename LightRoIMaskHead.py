@@ -71,7 +71,7 @@ class LightRoIMaskHead(chainer.Chain):
         # roi poolingをする前に、thin feature mapに変換します
         # activationしないっぽいことが書いてあるんだよなー
         left_path = self.conv_bl(self.conv_ul(x))
-        right_path = self.conv_bl(self.conv_ur(x))
+        right_path = self.conv_br(self.conv_ur(x))
         tfp = left_path + right_path
 
         # やがてroi_alignに変わるもの
