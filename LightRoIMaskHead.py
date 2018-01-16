@@ -3,9 +3,15 @@ import chainer
 import chainer.links as L
 import chainer.functions as F
 from chainer.links.model.vision.resnet import ResNet50Layers, BuildingBlock, _global_average_pooling_2d
-from chainercv.links.model.faster_rcnn.faster_rcnn_vgg import _roi_pooling_2d_yx
 import numpy as np
 import copy
+from roi_align.roi_align_2d import roi_align_2d
+
+def _roi_align_2d_yx(x, indices_and_rois, outh, outw, spatial_scale):
+    xy_indices_and_rois = indices_and_rois[:, [0, 2, 1, 4, 3]]
+    pool = roi_align_2d(
+        x, xy_indices_and_rois, outh, outw, spatial_scale)
+    return pool
 
 
 class LightRoIMaskHead(chainer.Chain):
@@ -74,8 +80,7 @@ class LightRoIMaskHead(chainer.Chain):
         right_path = self.conv_br(self.conv_ur(x))
         tfp = left_path + right_path
 
-        # やがてroi_alignに変わるもの
-        pool = _roi_pooling_2d_yx(tfp, indices_and_rois, self.roi_size,
+        pool = _roi_align_2d_yx(tfp, indices_and_rois, self.roi_size,
                                   self.roi_size, self.spatial_scale)
 
         h = F.relu(self.fc(pool))
