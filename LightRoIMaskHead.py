@@ -5,7 +5,8 @@ import chainer.functions as F
 from chainer.links.model.vision.resnet import ResNet50Layers, BuildingBlock, _global_average_pooling_2d
 import numpy as np
 import copy
-from roi_align_2d_yx import _roi_align_2d_yx 
+from roi_align_2d_yx import _roi_align_2d_yx
+
 
 class LightRoIMaskHead(chainer.Chain):
     def __init__(self,
@@ -74,7 +75,7 @@ class LightRoIMaskHead(chainer.Chain):
         tfp = left_path + right_path
 
         pool = _roi_align_2d_yx(tfp, indices_and_rois, self.roi_size,
-                                  self.roi_size, self.spatial_scale)
+                                self.roi_size, self.spatial_scale)
 
         h = F.relu(self.fc(pool))
         roi_cls_locs = self.cls_loc(h)
