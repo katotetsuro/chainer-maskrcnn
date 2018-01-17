@@ -63,7 +63,6 @@ class MaskRCNNResnet50(FasterRCNN):
                 mask_initialW=chainer.initializers.Normal(0.01))
 
         elif head_arch == 'light':
-            print('Light-Head RCNNの実装を使います')
             head = LightRoIMaskHead(
                 n_fg_class + 1,
                 roi_size=7,
@@ -154,7 +153,7 @@ class MaskRCNNResnet50(FasterRCNN):
                 h = r[2] - r[0]
                 m = cv2.resize(m, (w, h)) * 255
                 m = m.astype(np.uint8)
-                _, m = cv2.threshold(m, 100, 255, cv2.THRESH_BINARY)
+                _, m = cv2.threshold(m, 127, 255, cv2.THRESH_BINARY)
 
                 # ここめっちゃダサいんだけど、場合分けする
                 l = b - r
