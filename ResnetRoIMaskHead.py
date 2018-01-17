@@ -3,10 +3,9 @@ import chainer
 import chainer.links as L
 import chainer.functions as F
 from chainer.links.model.vision.resnet import ResNet50Layers, BuildingBlock, _global_average_pooling_2d
-from chainercv.links.model.faster_rcnn.faster_rcnn_vgg import _roi_pooling_2d_yx
 import numpy as np
 import copy
-
+from roi_align_2d_yx import _roi_align_2d_yx 
 
 class ResnetRoIMaskHead(chainer.Chain):
     def __init__(self,
@@ -56,8 +55,7 @@ class ResnetRoIMaskHead(chainer.Chain):
         indices_and_rois = self.xp.concatenate(
             (roi_indices[:, None], rois), axis=1)
 
-        # やがてroi_alignに変わるもの
-        pool = _roi_pooling_2d_yx(x, indices_and_rois, self.roi_size,
+        pool = _roi_align_2d_yx(x, indices_and_rois, self.roi_size,
                                   self.roi_size, self.spatial_scale)
 
         # h: 分岐する直前まで

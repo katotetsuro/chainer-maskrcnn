@@ -1,0 +1,3 @@
+[submodule "roi_align"]
+	path = roi_align
+	url = https://github.com/katotetsuro/roi_align.git
