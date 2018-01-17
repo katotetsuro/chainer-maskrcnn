@@ -80,6 +80,24 @@ class LightRoIMaskHead(chainer.Chain):
         h = F.relu(self.fc(pool))
         roi_cls_locs = self.cls_loc(h)
         roi_scores = self.score(h)
-        # mask
+        # at prediction time, we use two pass method.
+        # at first path, we predict box location and class
+        # at second path, we predict mask with accurate location from first path
+        if chainer.config.train:
+            mask = self.conv2(self.deconv1(pool))
+            return roi_cls_locs, roi_scores, mask
+        else:
+            # cache tfp for second path
+            self.tfp = tfp
+            return roi_cls_locs, roi_scores
+
+
+    def predict_mask(self, rois, roi_indices):
+        roi_indices = roi_indices.astype(np.float32)
+        indices_and_rois = self.xp.concatenate(
+            (roi_indices[:, None], rois), axis=1)
+        pool = _roi_align_2d_yx(self.tfp, indices_and_rois, self.roi_size,
+                                self.roi_size, self.spatial_scale)
+
         mask = self.conv2(self.deconv1(pool))
-        return roi_cls_locs, roi_scores, mask
+        return mask
