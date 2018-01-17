@@ -5,7 +5,8 @@ import chainer.functions as F
 from chainer.links.model.vision.resnet import ResNet50Layers, BuildingBlock, _global_average_pooling_2d
 import numpy as np
 import copy
-from roi_align_2d_yx import _roi_align_2d_yx 
+from roi_align_2d_yx import _roi_align_2d_yx
+
 
 class ResnetRoIMaskHead(chainer.Chain):
     def __init__(self,
@@ -56,7 +57,7 @@ class ResnetRoIMaskHead(chainer.Chain):
             (roi_indices[:, None], rois), axis=1)
 
         pool = _roi_align_2d_yx(x, indices_and_rois, self.roi_size,
-                                  self.roi_size, self.spatial_scale)
+                                self.roi_size, self.spatial_scale)
 
         # h: 分岐する直前まで
         h = F.relu(self.res5(pool))
