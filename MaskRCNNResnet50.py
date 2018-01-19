@@ -26,7 +26,7 @@ class MaskRCNNResnet50(FasterRCNN):
                  min_size=600,
                  max_size=1000,
                  ratios=[0.5, 1, 2],
-                 anchor_scales=[8, 16, 32],
+                 anchor_scales=[16],
                  rpn_initialW=None,
                  loc_initialW=None,
                  score_initialW=None,

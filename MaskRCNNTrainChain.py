@@ -10,7 +10,6 @@ import numpy as np
 from MaskRCNNResnet50 import MaskRCNNResnet50
 from ProposalTargetCreator import ProposalTargetCreator
 
-
 class MaskRCNNTrainChain(FasterRCNNTrainChain):
     def __init__(self,
                  faster_rcnn,
