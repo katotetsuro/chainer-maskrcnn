@@ -48,6 +48,7 @@ def main():
         '--label_file', '-f', type=str, default='data/label_coco.txt')
     parser.add_argument('--head_arch', '-a', type=str, default='fpn')
     parser.add_argument('--multi_gpu', '-m', type=int, default=0)
+    parser.add_argument('--batch_size', '-b', type=int, default=1)
 
     args = parser.parse_args()
 
@@ -85,10 +86,15 @@ def main():
     coco_train_data = COCOMaskLoader(category_filter=labels)
     train_data = TransformDataset(coco_train_data, Transform(faster_rcnn))
 
-    train_iter = chainer.iterators.SerialIterator(
-        train_data, batch_size=1, repeat=True, shuffle=False)
-    updater = chainer.training.updater.StandardUpdater(
-        train_iter, optimizer, device=args.gpu)
+    if args.multi_gpu:
+        train_iters = [chainer.iterators.SerialIterator(train_data, 1, repeat=True, shuffle=True) for i in range(8)]
+        updater = chainer.training.updater.MultiprocessParallelUpdater(train_iters, optimizer, device=range(8))
+
+    else:
+        train_iter = chainer.iterators.SerialIterator(
+            train_data, batch_size=args.batch_size, repeat=True, shuffle=False)
+        updater = chainer.training.updater.StandardUpdater(
+            train_iter, optimizer, device=args.gpu)
 
     trainer = training.Trainer(updater, (args.iteration, 'iteration'),
                                args.out)
