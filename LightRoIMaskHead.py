@@ -12,7 +12,6 @@ class LightRoIMaskHead(chainer.Chain):
     def __init__(self,
                  n_class,
                  roi_size,
-                 spatial_scale,
                  loc_initialW=None,
                  score_initialW=None,
                  mask_initialW=None):
@@ -61,9 +60,8 @@ class LightRoIMaskHead(chainer.Chain):
 
         self.n_class = n_class
         self.roi_size = roi_size
-        self.spatial_scale = spatial_scale
 
-    def __call__(self, x, rois, roi_indices):
+    def __call__(self, x, rois, roi_indices, spatial_scale):
         roi_indices = roi_indices.astype(np.float32)
         indices_and_rois = self.xp.concatenate(
             (roi_indices[:, None], rois), axis=1)
@@ -75,7 +73,7 @@ class LightRoIMaskHead(chainer.Chain):
         tfp = left_path + right_path
 
         pool = _roi_align_2d_yx(tfp, indices_and_rois, self.roi_size,
-                                self.roi_size, self.spatial_scale)
+                                self.roi_size, spatial_scale)
 
         h = F.relu(self.fc(pool))
         roi_cls_locs = self.cls_loc(h)
@@ -91,12 +89,12 @@ class LightRoIMaskHead(chainer.Chain):
             self.tfp = tfp
             return roi_cls_locs, roi_scores
 
-    def predict_mask(self, rois, roi_indices):
+    def predict_mask(self, rois, roi_indices, spatial_scale):
         roi_indices = roi_indices.astype(np.float32)
         indices_and_rois = self.xp.concatenate(
             (roi_indices[:, None], rois), axis=1)
         pool = _roi_align_2d_yx(self.tfp, indices_and_rois, self.roi_size,
-                                self.roi_size, self.spatial_scale)
+                                self.roi_size, spatial_scale)
 
         mask = self.conv2(self.deconv1(pool))
         return mask

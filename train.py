@@ -15,7 +15,6 @@ from COCODataset import COCOMaskLoader
 import argparse
 from os.path import exists
 
-
 class Transform(object):
     def __init__(self, faster_rcnn):
         self.faster_rcnn = faster_rcnn
@@ -46,6 +45,7 @@ def main():
     parser.add_argument('--weight', '-w', type=str, default='')
     parser.add_argument(
         '--label_file', '-f', type=str, default='data/label_coco.txt')
+    parser.add_argument('--backbone', type=str, default='fpn')
     parser.add_argument('--head_arch', '-a', type=str, default='fpn')
     parser.add_argument('--multi_gpu', '-m', type=int, default=0)
     parser.add_argument('--batch_size', '-b', type=int, default=1)
@@ -57,6 +57,7 @@ def main():
     print('weight:{}'.format(args.weight))
     print('label file:{}'.format(args.label_file))
     print('iteration::{}'.format(args.iteration))
+    print('backbone architecture:{}'.format(args.backbone))
     print('head architecture:{}'.format(args.head_arch))
 
     if args.multi_gpu:
@@ -69,7 +70,7 @@ def main():
         labels = f.read().strip().split("\n")
 
     faster_rcnn = MaskRCNNResnet50(
-        n_fg_class=len(labels), head_arch=args.head_arch)
+        n_fg_class=len(labels), backbone=args.backbone, head_arch=args.head_arch)
     faster_rcnn.use_preset('evaluate')
     model = MaskRCNNTrainChain(faster_rcnn)
     if exists(args.weight):
