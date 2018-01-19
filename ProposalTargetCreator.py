@@ -25,7 +25,8 @@ class ProposalTargetCreator(object):
                  label,
                  mask,
                  loc_normalize_mean=(0., 0., 0., 0.),
-                 loc_normalize_std=(0.1, 0.1, 0.2, 0.2)):
+                 loc_normalize_std=(0.1, 0.1, 0.2, 0.2),
+                 mask_size=14):
         xp = cuda.get_array_module(roi)
         roi = cuda.to_cpu(roi)
         bbox = cuda.to_cpu(bbox)
@@ -76,7 +77,6 @@ class ProposalTargetCreator(object):
         # https://engineer.dena.jp/2017/12/chainercvmask-r-cnn.html
         gt_roi_mask = []
         _, h, w = mask.shape
-        masksize = 14
         for i, idx in enumerate(gt_assignment[pos_index]):
             A = mask[idx,
                      np.max((int(sample_roi[i, 0]),
@@ -84,7 +84,7 @@ class ProposalTargetCreator(object):
                      np.max((int(sample_roi[i, 1]),
                              0)):np.min((int(sample_roi[i, 3]), w))]
             gt_roi_mask.append(
-                cv2.resize(A, (masksize, masksize)).astype(np.int32))
+                cv2.resize(A, (mask_size, mask_size)).astype(np.int32))
 
         gt_roi_mask = xp.array(gt_roi_mask)
 

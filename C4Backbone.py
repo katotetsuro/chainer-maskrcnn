@@ -18,4 +18,4 @@ class C4Backbone(ResNet50Layers):
                                                             [self.res4])])
 
     def __call__(self, x, **kwargs):
-        return super().__call__(x, ['res4'], **kwargs)['res4']
+        return super().__call__(x, ['res4'], **kwargs)['res4'],
