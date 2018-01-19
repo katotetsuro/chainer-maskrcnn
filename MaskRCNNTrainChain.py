@@ -9,6 +9,8 @@ import cv2
 import numpy as np
 from MaskRCNNResnet50 import MaskRCNNResnet50
 from ProposalTargetCreator import ProposalTargetCreator
+from feature_pyramid_network import FeaturePyramidNetwork
+from C4Backbone import C4Backbone
 
 class MaskRCNNTrainChain(FasterRCNNTrainChain):
     def __init__(self,
@@ -42,7 +44,14 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
         features = self.faster_rcnn.extractor(imgs)
         loss = chainer.Variable(self.xp.array(0, self.xp.float32))
         # hacky scale coefficient relative to c4 backbone's output size
-        scale_coef = [0.5, 1, 2, 4] if len(features) == 4 else [1]
+        if isinstance(self.faster_rcnn.extractor, FeaturePyramidNetwork):
+            scale_coef = [0.5, 1, 2, 4]
+            mask_size = 28
+        elif isinstance(self.faster_rcnn.extractor, C4Backbone):
+            scale_coef = [1]
+            mask_size = 14
+        else:
+            raise ValueError('unknown backbone:', self.faster_rcnn)
         # iterate over feature pyramids
         for s, feature in zip(scale_coef, features):
             rpn_locs, rpn_scores, rois, roi_indices, anchor = self.faster_rcnn.rpn(
@@ -65,12 +74,12 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
                 mask,
                 self.loc_normalize_mean,
                 self.loc_normalize_std,
-                mask_size=28)
+                mask_size=mask_size)
 
             sample_roi_index = self.xp.zeros(
                 (len(sample_roi), ), dtype=np.int32)
             roi_cls_loc, roi_score, roi_cls_mask = self.faster_rcnn.head(
-                feature, sample_roi, sample_roi_index, 1 / 16. * s)
+                feature, sample_roi, sample_roi_index, 1 / self.faster_rcnn.feat_stride * s)
 
             # RPN losses
             gt_rpn_loc, gt_rpn_label = self.anchor_target_creator(

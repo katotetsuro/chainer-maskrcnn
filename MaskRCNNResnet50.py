@@ -26,7 +26,7 @@ class MaskRCNNResnet50(FasterRCNN):
                  min_size=600,
                  max_size=1000,
                  ratios=[0.5, 1, 2],
-                 anchor_scales=[16],
+                 anchor_scales=[8],
                  rpn_initialW=None,
                  loc_initialW=None,
                  score_initialW=None,
@@ -48,10 +48,12 @@ class MaskRCNNResnet50(FasterRCNN):
             extractor = FeaturePyramidNetwork()
             rpn_in_channels = 256
             rpn_mid_channels = 256  # ??
-        else:
+        elif backbone == 'c4':
             extractor = C4Backbone('auto')
-            rpn_in_channels = 256
-            rpn_mid_channels = 256  # ??
+            rpn_in_channels = 1024
+            rpn_mid_channels = 516  # ??
+        else:
+            raise ValueError('select backbone frome fpn or c4: {}'.format(backbone))
 
         rpn = RegionProposalNetwork(
             rpn_in_channels,
@@ -76,7 +78,6 @@ class MaskRCNNResnet50(FasterRCNN):
             head = LightRoIMaskHead(
                 n_fg_class + 1,
                 roi_size=7,
-                spatial_scale=1. / self.feat_stride,
                 loc_initialW=loc_initialW,
                 score_initialW=score_initialW,
                 mask_initialW=chainer.initializers.Normal(0.01))
