@@ -47,6 +47,7 @@ def main():
     parser.add_argument(
         '--label_file', '-f', type=str, default='data/label_coco.txt')
     parser.add_argument('--head_arch', '-a', type=str, default='fpn')
+    parser.add_argument('--multi_gpu', '-m', type=int, default=0)
 
     args = parser.parse_args()
 
@@ -56,6 +57,12 @@ def main():
     print('label file:{}'.format(args.label_file))
     print('iteration::{}'.format(args.iteration))
     print('head architecture:{}'.format(args.head_arch))
+
+    if args.multi_gpu:
+        print('try to use chainer.training.updaters.MultiprocessParallelUpdater')
+        if not chainer.training.updaters.MultiprocessParallelUpdater.available():
+            print('MultiprocessParallelUpdater is not available')
+            args.multi_gpu = 0
 
     with open(args.label_file, "r") as f:
         labels = f.read().strip().split("\n")
