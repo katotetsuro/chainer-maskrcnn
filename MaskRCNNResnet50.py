@@ -152,8 +152,9 @@ class MaskRCNNResnet50(FasterRCNN):
                 with chainer.using_config('train', False), \
                         chainer.function.no_backprop_mode():
                     # because we are assuming batch size=1, all elements of roi_indices is zero.
-                    roi_indices = np.zeros(roi.shape[0])
-                    mask = self.head.predict_mask(bbox * scale, roi_indices)
+                    roi_indices = self.xp.zeros(roi.shape[0])
+                    bbox_gpu = cuda.to_gpu(bbox) if self.xp == cupy else bbox
+                    mask = self.head.predict_mask(bbox_gpu * scale, roi_indices)
                 mask = F.sigmoid(mask).data
                 mask = cuda.to_cpu(mask)
                 # extract single channel per detected box, with correspong labels
