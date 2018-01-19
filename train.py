@@ -46,7 +46,7 @@ def main():
     parser.add_argument('--weight', '-w', type=str, default='')
     parser.add_argument(
         '--label_file', '-f', type=str, default='data/label_coco.txt')
-    parser.add_argument('--head_arch', '-a', type=str, default='res5')
+    parser.add_argument('--head_arch', '-a', type=str, default='fpn')
 
     args = parser.parse_args()
 

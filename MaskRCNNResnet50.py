@@ -12,6 +12,8 @@ from chainercv.utils import non_maximum_suppression
 from C4Backbone import C4Backbone
 from ResnetRoIMaskHead import ResnetRoIMaskHead
 from LightRoIMaskHead import LightRoIMaskHead
+from fpn_roi_mask_head import FPNRoIMaskHead
+from feature_pyramid_network import FeaturePyramidNetwork
 import cv2
 
 
@@ -29,7 +31,8 @@ class MaskRCNNResnet50(FasterRCNN):
                  loc_initialW=None,
                  score_initialW=None,
                  proposal_creator_params={},
-                 head_arch='res5'):
+                 backbone='fpn',
+                 head_arch='fpn'):
         if n_fg_class is None:
             raise ValueError(
                 'The n_fg_class needs to be supplied as an argument')
@@ -41,11 +44,18 @@ class MaskRCNNResnet50(FasterRCNN):
         if rpn_initialW is None:
             rpn_initialW = chainer.initializers.Normal(0.01)
 
-        extractor = C4Backbone('auto')
+        if backbone == 'fpn':
+            extractor = FeaturePyramidNetwork()
+            rpn_in_channels = 256
+            rpn_mid_channels = 256  # ??
+        else:
+            extractor = C4Backbone('auto')
+            rpn_in_channels = 256
+            rpn_mid_channels = 256  # ??
 
         rpn = RegionProposalNetwork(
-            1024,
-            1024,
+            rpn_in_channels,
+            rpn_mid_channels,
             ratios=ratios,
             anchor_scales=anchor_scales,
             feat_stride=self.feat_stride,
@@ -70,6 +80,14 @@ class MaskRCNNResnet50(FasterRCNN):
                 loc_initialW=loc_initialW,
                 score_initialW=score_initialW,
                 mask_initialW=chainer.initializers.Normal(0.01))
+        elif head_arch == 'fpn':
+            head = FPNRoIMaskHead(
+                n_fg_class + 1,
+                roi_size_box=7,
+                roi_size_mask=14,
+                loc_initialW=loc_initialW,
+                score_initialW=score_initialW,
+                mask_initialW=chainer.initializers.Normal(0.01))
         else:
             raise ValueError(
                 'unknown head archtecture specified. {}'.format(head_arch))
@@ -86,9 +104,15 @@ class MaskRCNNResnet50(FasterRCNN):
     def __call__(self, x, scale=1.):
         img_size = x.shape[2:]
 
-        h = self.extractor(x)
+        feture_maps = self.extractor(x)
+        assert instanceof(h, tuple)
+        # creare resion proposals for each feature map pyramids
+        # if we use c4 backbone, number of pyramids equals one.
+        proposals = [self.rpn(h, img_size, scale) for h in feature_maps]
+
         rpn_locs, rpn_scores, rois, roi_indices, anchor =\
             self.rpn(h, img_size, scale)
+
         if chainer.config.train:
             roi_cls_locs, roi_scores, mask = self.head(h, rois, roi_indices)
             return roi_cls_locs, roi_scores, rois, roi_indices, mask
