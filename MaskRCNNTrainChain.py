@@ -11,6 +11,7 @@ from MaskRCNNResnet50 import MaskRCNNResnet50
 from ProposalTargetCreator import ProposalTargetCreator
 from feature_pyramid_network import FeaturePyramidNetwork
 from C4Backbone import C4Backbone
+import time
 
 class MaskRCNNTrainChain(FasterRCNNTrainChain):
     def __init__(self,
@@ -41,6 +42,7 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
         _, _, H, W = imgs.shape
         img_size = (H, W)
 
+        start_iter = time.time()
         features = self.faster_rcnn.extractor(imgs)
         loss = chainer.Variable(self.xp.array(0, self.xp.float32))
         # hacky scale coefficient relative to c4 backbone's output size
@@ -78,9 +80,13 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
 
             sample_roi_index = self.xp.zeros(
                 (len(sample_roi), ), dtype=np.int32)
+            start_head = time.time()
             roi_cls_loc, roi_score, roi_cls_mask = self.faster_rcnn.head(
                 feature, sample_roi, sample_roi_index, 1 / self.faster_rcnn.feat_stride * s)
+            end_head = time.time()
+            print ("elapsed_time per head:{0}".format(end_head-start_head) + "[sec]")
 
+            print('sample_roi', sample_roi.shape)
             # RPN losses
             gt_rpn_loc, gt_rpn_label = self.anchor_target_creator(
                 bbox, anchor, img_size)
@@ -117,4 +123,11 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
             'loss': loss
         }, self)
 
+        end_iter = time.time()
+        print ("elapsed_time per iter:{0}".format(end_iter - start_iter) + "[sec]")
+
+        start_bw = time.time()
+        loss.backward()
+        end_bw = time.time()
+        print('backward time:{}'.format(end_bw - start_bw))
         return loss
