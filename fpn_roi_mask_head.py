@@ -50,16 +50,23 @@ class FPNRoIMaskHead(chainer.Chain):
         self.roi_size_box = roi_size_box
         self.roi_size_mask = roi_size_mask
 
-    def __call__(self, x, rois, roi_indices, spatial_scale):
+    def __call__(self, x, proposals):
 
-        roi_indices = roi_indices.astype(np.float32)
-        indices_and_rois = self.xp.concatenate(
-            (roi_indices[:, None], rois), axis=1)
+        pool_box = list()
+        pool_mask = list()
+        for f, p in zip(x, proposals):
+            rois, roi_indices, spatial_scale = proposals[0]
+            roi_indices = roi_indices.astype(np.float32)
+            indices_and_rois = self.xp.concatenate(
+                (roi_indices[:, None], rois), axis=1)
 
-        pool_box = _roi_align_2d_yx(x, indices_and_rois, self.roi_size_box,
-                                    self.roi_size_box, spatial_scale)
-        pool_mask = _roi_align_2d_yx(x, indices_and_rois, self.roi_size_mask,
-                                     self.roi_size_mask, spatial_scale)
+            pool_box.append(_roi_align_2d_yx(f, indices_and_rois, self.roi_size_box,
+                                        self.roi_size_box, spatial_scale))
+            pool_mask.append(_roi_align_2d_yx(f, indices_and_rois, self.roi_size_mask,
+                                         self.roi_size_mask, spatial_scale))
+
+        pool_box = F.concat(pool_box, axis=1)
+        pool_mask = F.concat(pool_mask, axis=1)
 
         h = F.relu(self.conv1(pool_box))
         h = F.relu(self.fc1(h))
