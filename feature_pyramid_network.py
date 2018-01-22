@@ -7,9 +7,10 @@ from chainer.links.model.vision.resnet import ResNet50Layers
 class FeaturePyramidNetwork(chainer.Chain):
     def __init__(self):
         super().__init__()
-        self.resnet = ResNet50Layers('auto')
-        del self.resnet.fc6
         with self.init_scope():
+            # bottom up
+            self.resnet = ResNet50Layers('auto')
+            del self.resnet.fc6
             # top layer (reduce channel)
             self.toplayer = L.Convolution2D(
                 in_channels=None, out_channels=256, ksize=1, stride=1, pad=0)

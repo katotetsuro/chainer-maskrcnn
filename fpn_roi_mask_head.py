@@ -23,7 +23,7 @@ class FPNRoIMaskHead(chainer.Chain):
                 in_channels=None, out_channels=256, ksize=3, pad=1)
             self.fc1 = L.Linear(None, 1024)
             self.fc2 = L.Linear(None, 1024)
-            self.cls_loc = L.Linear(1024, n_class * 4, initialW=loc_initialW)
+            self.cls_loc = L.Linear(1024, 4, initialW=loc_initialW)
             self.score = L.Linear(1024, n_class, initialW=score_initialW)
 
             # mask prediction path
@@ -65,8 +65,8 @@ class FPNRoIMaskHead(chainer.Chain):
             pool_mask.append(_roi_align_2d_yx(f, indices_and_rois, self.roi_size_mask,
                                          self.roi_size_mask, spatial_scale))
 
-        pool_box = F.concat(pool_box, axis=1)
-        pool_mask = F.concat(pool_mask, axis=1)
+        pool_box = F.concat(pool_box, axis=0)
+        pool_mask = F.concat(pool_mask, axis=0)
 
         h = F.relu(self.conv1(pool_box))
         h = F.relu(self.fc1(h))
