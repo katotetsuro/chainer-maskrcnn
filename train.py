@@ -13,7 +13,9 @@ from MaskRCNNResnet50 import MaskRCNNResnet50
 from COCODataset import COCOMaskLoader
 
 import argparse
-from os.path import exists
+from os.path import exists, isfile
+import time
+import pickle
 
 class Transform(object):
     def __init__(self, faster_rcnn):
@@ -84,7 +86,23 @@ def main():
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.WeightDecay(rate=0.0005))
 
-    coco_train_data = COCOMaskLoader(category_filter=labels)
+    pkl_file = 'train_data.pkl'
+    if isfile(pkl_file):
+        print('pklから読み込みます')
+        dataload_start = time.time()
+        with open(pkl_file, 'rb') as f:
+            coco_train_data = pickle.load(f)
+        dataload_end = time.time()
+        print('pklからの読み込み {}'.format(dataload_end - dataload_start))
+    else:
+        dataload_start = time.time()
+        coco_train_data = COCOMaskLoader(category_filter=labels)
+        dataload_end = time.time()
+        print('普通の読み込み {}'.format(dataload_end - dataload_start))
+        print('次回のために保存します')
+        with open(pkl_file, 'wb') as f:
+            pickle.dump(coco_train_data, f)
+
     train_data = TransformDataset(coco_train_data, Transform(faster_rcnn))
 
     if args.multi_gpu:
