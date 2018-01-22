@@ -8,3 +8,4 @@ data/**/*.json
 *.zip
 *.swp
 .DS_Store
+*.profile

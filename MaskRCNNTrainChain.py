@@ -48,6 +48,8 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
         if isinstance(self.faster_rcnn.extractor, FeaturePyramidNetwork):
             scale_coef = [0.5, 1, 2, 4]
             mask_size = 28
+            # dirty hack
+            #self.proposal_target_creator.n_sample = 32 
         elif isinstance(self.faster_rcnn.extractor, C4Backbone):
             scale_coef = [1]
             mask_size = 14

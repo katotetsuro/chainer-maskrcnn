@@ -51,13 +51,13 @@ class ResnetRoIMaskHead(chainer.Chain):
         self.roi_size = roi_size
         self.spatial_scale = spatial_scale
 
-    def __call__(self, x, rois, roi_indices):
+    def __call__(self, x, rois, roi_indices, spatial_scale):
         roi_indices = roi_indices.astype(np.float32)
         indices_and_rois = self.xp.concatenate(
             (roi_indices[:, None], rois), axis=1)
 
         pool = _roi_align_2d_yx(x, indices_and_rois, self.roi_size,
-                                self.roi_size, self.spatial_scale)
+                                self.roi_size, spatial_scale)
 
         # h: 分岐する直前まで
         h = F.relu(self.res5(pool))
