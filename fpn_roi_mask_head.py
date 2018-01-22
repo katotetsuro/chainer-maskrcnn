@@ -77,7 +77,11 @@ class FPNRoIMaskHead(chainer.Chain):
         # at first path, we predict box location and class
         # at second path, we predict mask with accurate location from first path
         if chainer.config.train:
-            mask = self.conv2(self.deconv1(pool_mask))
+            mask = F.relu(self.mask1(pool_mask))
+            mask = F.relu(self.mask2(mask))
+            mask = F.relu(self.mask3(mask))
+            mask = F.relu(self.mask4(mask))
+            mask = self.conv2(self.deconv1(mask))
             return roi_cls_locs, roi_scores, mask
         else:
             # cache tfp for second path

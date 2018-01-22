@@ -146,6 +146,8 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
             for p in l.params():
                 if hasattr(p, 'size'):
                     n += p.size
+                else:
+                    print('parameter is none, ', l.name)
 
         print('num params', n)
 
