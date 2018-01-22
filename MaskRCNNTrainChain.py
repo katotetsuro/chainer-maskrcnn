@@ -13,6 +13,8 @@ from feature_pyramid_network import FeaturePyramidNetwork
 from C4Backbone import C4Backbone
 import time
 
+measure_time = True
+
 class MaskRCNNTrainChain(FasterRCNNTrainChain):
     def __init__(self,
                  faster_rcnn,
@@ -55,19 +57,24 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
             mask_size = 14
         else:
             raise ValueError('unknown backbone:', self.faster_rcnn)
+
+
+        # Since batch size is one, convert variables to singular form
+        bbox = bboxes[0]
+        label = labels[0]
+        mask = masks[0]
+        
         # iterate over feature pyramids
-        # 
         proposals = list()
-        for s, feature in zip(scale_coef, features):
+        rpn_outputs = list()
+        gt_data = list()
+        for i, (s, feature) in enumerate(zip(scale_coef, features)):
             rpn_locs, rpn_scores, rois, roi_indices, anchor = self.faster_rcnn.rpn(
                 feature, img_size, scale)
 
             # Since batch size is one, convert variables to singular form
-            bbox = bboxes[0]
-            label = labels[0]
             rpn_score = rpn_scores[0]
             rpn_loc = rpn_locs[0]
-            mask = masks[0]
             roi = rois
 
             # Sample RoIs and forward
@@ -85,6 +92,8 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
                 (len(sample_roi), ), dtype=np.int32)
 
             proposals.append((sample_roi, sample_roi_index, 1 / self.faster_rcnn.feat_stride * s))
+            rpn_outputs.append((rpn_loc, rpn_score, roi, anchor))
+            gt_data.append((gt_roi_loc, gt_roi_label, gt_roi_mask))
             
         start_head = time.time()
         if len(features) == 1:
@@ -98,13 +107,17 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
         end_head = time.time()
         print ("elapsed_time per head:{0}".format(end_head-start_head) + "[sec]")
 
-        print('sample_roi', sample_roi.shape)
+
         # RPN losses
-        gt_rpn_loc, gt_rpn_label = self.anchor_target_creator(
-            bbox, anchor, img_size)
-        rpn_loc_loss = _fast_rcnn_loc_loss(rpn_loc, gt_rpn_loc,
+        rpn_loc_loss = chainer.Variable(self.xp.array(0, dtype=self.xp.float32))
+        rpn_cls_loss = chainer.Variable(self.xp.array(0, dtype=self.xp.float32))
+        for (p, r) in zip(proposals, rpn_outputs):
+            rpn_loc, rpn_score, _, anchor = r
+            gt_rpn_loc, gt_rpn_label = self.anchor_target_creator(
+                bbox, anchor, img_size)
+            rpn_loc_loss += _fast_rcnn_loc_loss(rpn_loc, gt_rpn_loc,
                                            gt_rpn_label, self.rpn_sigma)
-        rpn_cls_loss = F.softmax_cross_entropy(rpn_score, gt_rpn_label)
+            rpn_cls_loss += F.softmax_cross_entropy(rpn_score, gt_rpn_label)
 
         # Losses for outputs of the head.
         n_sample = roi_cls_loc.shape[0]
@@ -115,6 +128,11 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
         else:
             roi_loc = roi_cls_loc[self.xp.arange(n_sample), gt_roi_label]
 
+
+
+        gt_roi_loc = self.xp.concatenate([g[0] for g in gt_data], axis=0)
+        gt_roi_label = self.xp.concatenate([g[1] for g in gt_data], axis=0)
+        gt_roi_mask = self.xp.concatenate([g[2] for g in gt_data], axis=0)
         roi_loc_loss = _fast_rcnn_loc_loss(roi_loc, gt_roi_loc,
                                            gt_roi_label, self.roi_sigma)
         roi_cls_loss = F.softmax_cross_entropy(roi_score, gt_roi_label)
