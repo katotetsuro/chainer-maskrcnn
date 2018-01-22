@@ -13,7 +13,7 @@ from feature_pyramid_network import FeaturePyramidNetwork
 from C4Backbone import C4Backbone
 import time
 
-measure_time = True
+measure_time = False
 
 class MaskRCNNTrainChain(FasterRCNNTrainChain):
     def __init__(self,
@@ -105,7 +105,8 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
             roi_cls_loc, roi_score, roi_cls_mask = self.faster_rcnn.head(
                 features, proposals)
         end_head = time.time()
-        print ("elapsed_time per head:{0}".format(end_head-start_head) + "[sec]")
+        if measure_time:
+            print ("elapsed_time per head:{0}".format(end_head-start_head) + "[sec]")
 
 
         # RPN losses
@@ -154,22 +155,24 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
         }, self)
 
         end_iter = time.time()
-        print ("elapsed_time per iter:{0}".format(end_iter - start_iter) + "[sec]")
+        if measure_time:
+            print ("elapsed_time per iter:{0}".format(end_iter - start_iter) + "[sec]")
 
         start_bw = time.time()
         loss.backward()
         end_bw = time.time()
-        print('backward time:{}'.format(end_bw - start_bw))
+        if measure_time:
+            print('backward time:{}'.format(end_bw - start_bw))
 
-        n = 0
-        for l in self.faster_rcnn.links():
-            for p in l.params():
-                if hasattr(p, 'size'):
-                    n += p.size
-                else:
-                    print('parameter is none, ', l.name)
+        #n = 0
+        #for l in self.faster_rcnn.links():
+        #    for p in l.params():
+        #        if hasattr(p, 'size'):
+        #            n += p.size
+        #        else:
+        #            print('parameter is none, ', l.name)
 
-        print('num params', n)
+        #print('num params', n)
 
 
         return loss
