@@ -134,6 +134,7 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
         gt_roi_loc = self.xp.concatenate([g[0] for g in gt_data], axis=0)
         gt_roi_label = self.xp.concatenate([g[1] for g in gt_data], axis=0)
         gt_roi_mask = self.xp.concatenate([g[2] for g in gt_data], axis=0)
+        print(roi_loc.shape, gt_roi_loc.shape, gt_roi_label.shape)
         roi_loc_loss = _fast_rcnn_loc_loss(roi_loc, gt_roi_loc,
                                            gt_roi_label, self.roi_sigma)
         roi_cls_loss = F.softmax_cross_entropy(roi_score, gt_roi_label)
