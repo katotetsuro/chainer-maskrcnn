@@ -121,6 +121,10 @@ class MaskRCNNResnet50(FasterRCNN):
             roi_score = roi_scores.data
             roi = rois / scale
 
+            # if loc prediction layer uses shared weight, expand (though, not optimized way)
+            if roi_cls_loc.shape[1] == 4:
+                roi_cls_loc = self.xp.tile(roi_cls_loc, self.n_class)
+
             # Convert predictions to bounding boxes in image coordinates.
             # Bounding boxes are scaled to the scale of the input images.
             mean = self.xp.tile(
