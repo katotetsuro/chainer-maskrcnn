@@ -65,13 +65,6 @@ class LightRoIMaskHead(chainer.Chain):
                 stride=1,
                 pad=1,
                 initialW=mask_initialW)
-            self.conv4 = L.Convolution2D(
-                in_channels=None,
-                out_channels=n_class - 1,
-                ksize=3,
-                stride=1,
-                pad=1,
-                initialW=mask_initialW)
 
         self.n_class = n_class
         self.roi_size = roi_size
@@ -101,7 +94,6 @@ class LightRoIMaskHead(chainer.Chain):
             mask = F.relu(self.deconv1(pool))
             mask = F.relu(self.conv2(mask))
             mask = F.relu(self.conv3(mask))
-            mask = F.relu(self.conv4(mask))
             return roi_cls_locs, roi_scores, mask
         else:
             # cache tfp for second path
@@ -118,5 +110,4 @@ class LightRoIMaskHead(chainer.Chain):
         mask = F.relu(self.deconv1(pool))
         mask = F.relu(self.conv2(mask))
         mask = F.relu(self.conv3(mask))
-        mask = F.relu(self.conv4(mask))
         return mask
