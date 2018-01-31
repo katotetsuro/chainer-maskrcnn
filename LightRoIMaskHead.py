@@ -44,13 +44,6 @@ class LightRoIMaskHead(chainer.Chain):
             self.cls_loc = L.Linear(2048, 4, initialW=loc_initialW)
             self.score = L.Linear(2048, n_class, initialW=score_initialW)
             # マスク推定ブランチへ
-            self.deconv1 = L.Deconvolution2D(
-                in_channels=None,
-                out_channels=256,
-                ksize=2,
-                stride=2,
-                pad=0,
-                initialW=mask_initialW)
             self.conv2 = L.Convolution2D(
                 in_channels=None,
                 out_channels=256,
@@ -64,6 +57,20 @@ class LightRoIMaskHead(chainer.Chain):
                 ksize=3,
                 stride=1,
                 pad=1,
+                initialW=mask_initialW)
+            self.conv4 = L.Convolution2D(
+                in_channels=None,
+                out_channels=256,
+                ksize=3,
+                stride=1,
+                pad=1,
+                initialW=mask_initialW)
+            self.deconv1 = L.Deconvolution2D(
+                in_channels=None,
+                out_channels=n_class-1,
+                ksize=2,
+                stride=2,
+                pad=0,
                 initialW=mask_initialW)
 
         self.n_class = n_class
@@ -91,9 +98,11 @@ class LightRoIMaskHead(chainer.Chain):
         # at first path, we predict box location and class
         # at second path, we predict mask with accurate location from first path
         if chainer.config.train:
-            mask = F.relu(self.deconv1(pool))
-            mask = F.relu(self.conv2(mask))
+            mask = F.relu(self.conv2(pool))
             mask = F.relu(self.conv3(mask))
+            mask = F.relu(self.conv4(mask))
+            mask = self.deconv1(pool)
+            #mask = self.conv2(self.deconv1(pool))
             return roi_cls_locs, roi_scores, mask
         else:
             # cache tfp for second path
@@ -107,7 +116,12 @@ class LightRoIMaskHead(chainer.Chain):
         pool = _roi_align_2d_yx(self.tfp, indices_and_rois, self.roi_size,
                                 self.roi_size, self.spatial_scale)
 
-        mask = F.relu(self.deconv1(pool))
-        mask = F.relu(self.conv2(mask))
-        mask = F.relu(self.conv3(mask))
+         mask = F.relu(self.conv2(pool))
+         mask = F.relu(self.conv3(mask))
+         mask = F.relu(self.conv4(mask))
+         mask = self.deconv1(pool)
+#        mask = self.deconv1(pool)
+#        mask = self.conv2_(mask)
+#        mask = self.conv3(mask)
+#        mask = self.conv2(self.deconv1(pool))
         return mask
