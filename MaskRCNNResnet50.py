@@ -162,8 +162,7 @@ class MaskRCNNResnet50(FasterRCNN):
                 mask = cuda.to_cpu(mask)
                 # extract single channel per detected box, with correspong labels
                 # label=0 indicates background, so we should shift with +1
-                mask = mask[:, label + 1]
-                mask = np.concatenate(mask, axis=0)
+                mask = mask[np.arange(mask.shape[0]), label + 1]
 
                 # maskをresizeする
                 for i, (b, m) in enumerate(zip(bbox, mask)):
