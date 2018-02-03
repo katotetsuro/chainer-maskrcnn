@@ -65,7 +65,7 @@ def main():
     faster_rcnn.use_preset('evaluate')
     model = MaskRCNNTrainChain(faster_rcnn)
     if exists(args.weight):
-        chainer.serializers.load_npz(args.weight, model.faster_rcnn)
+        chainer.serializers.load_npz(args.weight, model.faster_rcnn, strict=False)
 
     if args.gpu >= 0:
         chainer.cuda.get_device_from_id(args.gpu).use()
