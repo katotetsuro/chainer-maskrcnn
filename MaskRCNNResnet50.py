@@ -120,6 +120,9 @@ class MaskRCNNResnet50(FasterRCNN):
             roi_cls_loc = roi_cls_locs.data
             roi_score = roi_scores.data
             roi = rois / scale
+            
+            if roi_cls_loc.shape[1] == 4:
+                roi_cls_loc = self.xp.tile(roi_cls_loc, self.n_class)
 
             # if loc prediction layer uses shared weight, expand (though, not optimized way)
             if roi_cls_loc.shape[1] == 4:
@@ -163,8 +166,7 @@ class MaskRCNNResnet50(FasterRCNN):
                 mask = cuda.to_cpu(mask)
                 # extract single channel per detected box, with correspong labels
                 # label=0 indicates background, so we should shift with +1
-                mask = mask[:, label + 1]
-                mask = np.concatenate(mask, axis=0)
+                mask = mask[np.arange(mask.shape[0]), label + 1]
 
                 # maskをresizeする
                 for i, (b, m) in enumerate(zip(bbox, mask)):
