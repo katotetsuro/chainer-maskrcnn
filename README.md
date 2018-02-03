@@ -10,6 +10,7 @@ Light-Head R-CNN: http://arxiv.org/abs/1711.07264
 using LightHead architecture
 
 Good examples :)
+
 ![](imgs/008.jpg)
 ![](imgs/082.jpg)
 
@@ -45,7 +46,7 @@ MSCOCOをダウンロードしてdata以下に展開
 # pretrained model
 
 | architecture | url |
-|:-----------|------------:|:------------:|
+|:-----------|:------------:|
 | light head | https://drive.google.com/file/d/10tBJpWkimyr5r_DZ8wXsKPsb7-zm_7BT/view?usp=sharing |
 
 
