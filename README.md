@@ -7,11 +7,14 @@ Light-Head R-CNN: http://arxiv.org/abs/1711.07264
 
 # current status
 
-※Light-Headバージョンと比較を作って更新します
+using LightHead architecture
 
-![](imgs/1.jpg)
-![](imgs/45.jpg)
-![](imgs/47.jpg)
+Good examples :)
+![](imgs/008.jpg)
+![](imgs/082.jpg)
+
+many results are available here.
+https://drive.google.com/drive/u/1/folders/1BwYDFdGpaRNWTU2HyV18VuDvwqndv0e_
 
 # todo, issues
 
@@ -20,6 +23,8 @@ Light-Head R-CNN: http://arxiv.org/abs/1711.07264
 - 学習を進めるとどんどんメモリ使用量が増えていく問題があるので、現在調査中です。
 メモリ64GBのp2.xlargeインスタンスで学習したところ、データを1周したあとで増加は止まったので、そうゆう挙動で正しいのかもしれません。
 ただ、メモリ16GBのマシンだと動かないのは個人的に困っているので、調査を続けます。
+- add prediction notebook
+- keypoint detection
 
 # setup
 
@@ -36,6 +41,13 @@ MSCOCOをダウンロードしてdata以下に展開
 - train2014.zip
 - val2014.zip
 - annotations_trainval2014.zip
+
+# pretrained model
+
+| architecture | url |
+|:-----------|------------:|:------------:|
+| light head | https://drive.google.com/file/d/10tBJpWkimyr5r_DZ8wXsKPsb7-zm_7BT/view?usp=sharing |
+
 
 # acknowledgement
 
