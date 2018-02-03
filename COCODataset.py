@@ -41,7 +41,7 @@ class COCOMaskLoader(chainer.dataset.DatasetMixin):
             filter(lambda x: self._contain_large_annotation_only(x), img_ids))
         print('after filter: {}'.format(len(img_ids)))
 
-        shuffle(img_ids)
+#        shuffle(img_ids)
         self.img_infos = [(i['file_name'], i['id'])
                           for i in self.coco.loadImgs(img_ids)]
         # len(self.imgs)を呼ぶたびにメモリ使用量が増えるという罠?

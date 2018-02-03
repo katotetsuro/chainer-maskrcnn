@@ -51,7 +51,7 @@ class LightRoIMaskHead(chainer.Chain):
                 stride=1,
                 pad=1,
                 initialW=mask_initialW)
-            self.conv3 = L.Convolution2D(
+            self.conv3_ = L.Convolution2D(
                 in_channels=None,
                 out_channels=256,
                 ksize=3,
@@ -65,7 +65,7 @@ class LightRoIMaskHead(chainer.Chain):
                 stride=1,
                 pad=1,
                 initialW=mask_initialW)
-            self.deconv1 = L.Deconvolution2D(
+            self.deconv1_ = L.Deconvolution2D(
                 in_channels=None,
                 out_channels=n_class-1,
                 ksize=2,
@@ -99,9 +99,9 @@ class LightRoIMaskHead(chainer.Chain):
         # at second path, we predict mask with accurate location from first path
         if chainer.config.train:
             mask = F.relu(self.conv2(pool))
-            mask = F.relu(self.conv3(mask))
+            mask = F.relu(self.conv3_(mask))
             mask = F.relu(self.conv4(mask))
-            mask = self.deconv1(pool)
+            mask = self.deconv1_(pool)
             #mask = self.conv2(self.deconv1(pool))
             return roi_cls_locs, roi_scores, mask
         else:
@@ -116,10 +116,10 @@ class LightRoIMaskHead(chainer.Chain):
         pool = _roi_align_2d_yx(self.tfp, indices_and_rois, self.roi_size,
                                 self.roi_size, self.spatial_scale)
 
-         mask = F.relu(self.conv2(pool))
-         mask = F.relu(self.conv3(mask))
-         mask = F.relu(self.conv4(mask))
-         mask = self.deconv1(pool)
+        mask = F.relu(self.conv2(pool))
+        mask = F.relu(self.conv3_(mask))
+        mask = F.relu(self.conv4(mask))
+        mask = self.deconv1_(pool)
 #        mask = self.deconv1(pool)
 #        mask = self.conv2_(mask)
 #        mask = self.conv3(mask)
