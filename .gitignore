@@ -8,3 +8,6 @@ data/**/*.json
 *.zip
 *.swp
 .DS_Store
+data/annotations
+data/train2014
+data/val2014
