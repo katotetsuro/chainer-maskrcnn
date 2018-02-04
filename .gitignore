@@ -9,3 +9,7 @@ data/**/*.json
 *.swp
 .DS_Store
 *.profile
+
+data/annotations
+data/train2014
+data/val2014
