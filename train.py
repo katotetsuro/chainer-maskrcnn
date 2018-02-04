@@ -126,8 +126,8 @@ def main():
     trainer.extend(
         extensions.ExponentialShift('lr', 0.1), trigger=(2, 'epoch'))
 
-    log_interval = 100, 'iteration'
-    print_interval = 100, 'iteration'
+    log_interval = 10, 'iteration'
+    print_interval = 10, 'iteration'
 
     trainer.extend(
         chainer.training.extensions.observe_lr(), trigger=log_interval)

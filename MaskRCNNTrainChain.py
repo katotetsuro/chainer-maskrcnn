@@ -51,7 +51,7 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
             scale_coef = [0.5, 1, 2, 4]
             mask_size = 28
             # dirty hack
-            #self.proposal_target_creator.n_sample = 32 
+            #self.proposal_target_creator.n_sample = 32
         elif isinstance(self.faster_rcnn.extractor, C4Backbone):
             scale_coef = [1]
             mask_size = 14
@@ -63,7 +63,7 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
         bbox = bboxes[0]
         label = labels[0]
         mask = masks[0]
-        
+
         # iterate over feature pyramids
         proposals = list()
         rpn_outputs = list()
@@ -94,7 +94,7 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
             proposals.append((sample_roi, sample_roi_index, 1 / self.faster_rcnn.feat_stride * s))
             rpn_outputs.append((rpn_loc, rpn_score, roi, anchor))
             gt_data.append((gt_roi_loc, gt_roi_label, gt_roi_mask))
-            
+
         start_head = time.time()
         if len(features) == 1:
             sample_roi, sample_roi_index, s = proposals[0]
