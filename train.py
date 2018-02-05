@@ -89,7 +89,7 @@ def main():
     trainer.extend(
         extensions.snapshot_object(model.faster_rcnn,
                                    'model_iter_{.updater.iteration}.npz'),
-        trigger=(10000, 'iteration'))
+        trigger=(40000, 'iteration'))
 
     trainer.extend(
         extensions.ExponentialShift('lr', 0.1), trigger=(2, 'epoch'))
