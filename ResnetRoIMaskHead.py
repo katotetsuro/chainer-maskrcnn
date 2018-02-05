@@ -67,5 +67,5 @@ class ResnetRoIMaskHead(chainer.Chain):
         roi_cls_locs = self.cls_loc(gap)
         roi_scores = self.score(gap)
         # mask
-        mask = self.conv2(self.deconv1(h))
+        mask = self.conv2(F.relu(self.deconv1(h)))
         return roi_cls_locs, roi_scores, mask
