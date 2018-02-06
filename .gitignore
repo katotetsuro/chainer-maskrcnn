@@ -8,6 +8,8 @@ data/**/*.json
 *.zip
 *.swp
 .DS_Store
+<<<<<<< HEAD
 data/annotations
 data/train2014
 data/val2014
+*.profile
