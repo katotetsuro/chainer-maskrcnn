@@ -8,8 +8,7 @@ from  chainercv.links.model.faster_rcnn.region_proposal_network import _enumerat
 
 from chainercv.links.model.faster_rcnn.utils.generate_anchor_base import \
     generate_anchor_base
-from chainercv.links.model.faster_rcnn.utils.proposal_creator import \
-    ProposalCreator
+from proposal_creator import ProposalCreator
 
 class MultilevelRegionProposalNetwork(chainer.Chain):
 
@@ -127,25 +126,30 @@ class MultilevelRegionProposalNetwork(chainer.Chain):
             fg_scores.append(rpn_fg_scores)
             anchors.append(anchor)
             # indicates level index, which generates these anchor.
-            #indices = self.xp.empty((n_anchor
-            #level_indices.append(self.xp.array())
+            indices = self.xp.empty((rpn_fg_scores.shape), dtype=self.xp.float32)
+            indices.fill(i)
+            level_indices.append(indices)
 
         # chainer.functions's default axis=1, but explicitly for myself.
         locs = F.concat(locs, axis=1)
         scores = F.concat(scores, axis=1)
         fg_scores = F.concat(fg_scores, axis=1)
         anchors = self.xp.concatenate(anchors, axis=0)
+        level_indices = self.xp.concatenate(level_indices, axis=1)
 
         rois = list()
         roi_indices = list()
+        levels = list()
         for i in range(n):
-            roi = self.proposal_layer(
-                locs[i].array, fg_scores[i].array, anchors, img_size,
+            roi, l = self.proposal_layer(
+                locs[i].array, fg_scores[i].array, anchors, level_indices[i], img_size,
                 scale=scale)
             batch_index = i * self.xp.ones((len(roi),), dtype=np.int32)
             rois.append(roi)
+            levels.append(l)
             roi_indices.append(batch_index)
 
         rois = self.xp.concatenate(rois, axis=0)
+        levels = self.xp.concatenate(levels, axis=0)
         roi_indices = self.xp.concatenate(roi_indices, axis=0)
-        return locs, scores, rois, roi_indices, anchors
+        return locs, scores, rois, roi_indices, anchors, levels

@@ -110,10 +110,10 @@ class MaskRCNNResnet50(FasterRCNN):
         img_size = x.shape[2:]
 
         h = self.extractor(x)
-        rpn_locs, rpn_scores, rois, roi_indices, anchor =\
+        rpn_locs, rpn_scores, rois, roi_indices, anchor, levels =\
             self.rpn(h, img_size, scale)
 
-        return rois
+        return rois, levels
 
         if chainer.config.train:
             roi_cls_locs, roi_scores, mask = self.head(h, rois, roi_indices)
