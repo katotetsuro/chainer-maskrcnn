@@ -102,7 +102,9 @@ class MultilevelRegionProposalNetwork(chainer.Chain):
 
         locs = list()
         scores = list()
+        fg_scores = list()
         anchors = list()
+        level_indices = list()  
         for i, x in enumerate(xs):
             n, _, hh, ww = x.shape
             anchor = _enumerate_shifted_anchor(
@@ -122,17 +124,23 @@ class MultilevelRegionProposalNetwork(chainer.Chain):
 
             locs.append(rpn_locs)
             scores.append(rpn_scores)
+            fg_scores.append(rpn_fg_scores)
             anchors.append(anchor)
+            # indicates level index, which generates these anchor.
+            #indices = self.xp.empty((n_anchor
+            #level_indices.append(self.xp.array())
 
-        locs = F.concat(locs)
-        scores = F.concat(scores)
+        # chainer.functions's default axis=1, but explicitly for myself.
+        locs = F.concat(locs, axis=1)
+        scores = F.concat(scores, axis=1)
+        fg_scores = F.concat(fg_scores, axis=1)
         anchors = self.xp.concatenate(anchors, axis=0)
 
         rois = list()
         roi_indices = list()
         for i in range(n):
             roi = self.proposal_layer(
-                rpn_locs[i].array, rpn_fg_scores[i].array, anchor, img_size,
+                locs[i].array, fg_scores[i].array, anchors, img_size,
                 scale=scale)
             batch_index = i * self.xp.ones((len(roi),), dtype=np.int32)
             rois.append(roi)

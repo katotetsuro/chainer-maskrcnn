@@ -109,14 +109,11 @@ class MaskRCNNResnet50(FasterRCNN):
     def __call__(self, x, scale=1.):
         img_size = x.shape[2:]
 
-        feture_maps = self.extractor(x)
-        assert instanceof(h, tuple)
-        # creare resion proposals for each feature map pyramids
-        # if we use c4 backbone, number of pyramids equals one.
-        proposals = [self.rpn(h, img_size, scale) for h in feature_maps]
-
+        h = self.extractor(x)
         rpn_locs, rpn_scores, rois, roi_indices, anchor =\
             self.rpn(h, img_size, scale)
+
+        return rois
 
         if chainer.config.train:
             roi_cls_locs, roi_scores, mask = self.head(h, rois, roi_indices)
@@ -143,12 +140,14 @@ class MaskRCNNResnet50(FasterRCNN):
                     chainer.function.no_backprop_mode():
                 img_var = chainer.Variable(self.xp.asarray(img[None]))
                 scale = img_var.shape[3] / size[1]
-                roi_cls_locs, roi_scores, rois, roi_indices = self.__call__(
-                    img_var, scale=scale)
+                rois = self.__call__(img_var, scale=scale)
+                #roi_cls_locs, roi_scores, rois, roi_indices = self.__call__(
+                #    img_var, scale=scale)
             # We are assuming that batch size is 1.
+            roi = rois / scale
+            return roi
             roi_cls_loc = roi_cls_locs.data
             roi_score = roi_scores.data
-            roi = rois / scale
             
             if roi_cls_loc.shape[1] == 4:
                 roi_cls_loc = self.xp.tile(roi_cls_loc, self.n_class)
