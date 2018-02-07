@@ -109,12 +109,7 @@ class MaskRCNNResnet50(FasterRCNN):
     def __call__(self, x, scale=1.):
         img_size = x.shape[2:]
 
-        feture_maps = self.extractor(x)
-        assert instanceof(h, tuple)
-        # creare resion proposals for each feature map pyramids
-        # if we use c4 backbone, number of pyramids equals one.
-        proposals = [self.rpn(h, img_size, scale) for h in feature_maps]
-
+        h = self.extractor(x)
         rpn_locs, rpn_scores, rois, roi_indices, anchor =\
             self.rpn(h, img_size, scale)
 
