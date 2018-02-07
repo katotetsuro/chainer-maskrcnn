@@ -9,6 +9,7 @@ data/**/*.json
 *.swp
 .DS_Store
 <<<<<<< HEAD
+<<<<<<< HEAD
 data/annotations
 data/train2014
 data/val2014
