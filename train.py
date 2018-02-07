@@ -9,6 +9,7 @@ from chainerui.extensions import CommandsExtension
 import cv2
 import numpy as np
 from MaskRCNNTrainChain import MaskRCNNTrainChain
+from fpn_maskrcnn_train_chain import FPNMaskRCNNTrainChain
 from MaskRCNNResnet50 import MaskRCNNResnet50
 from COCODataset import COCOMaskLoader
 
@@ -74,7 +75,8 @@ def main():
     faster_rcnn = MaskRCNNResnet50(
         n_fg_class=len(labels), backbone=args.backbone, head_arch=args.head_arch)
     faster_rcnn.use_preset('evaluate')
-    model = MaskRCNNTrainChain(faster_rcnn)
+    #model = MaskRCNNTrainChain(faster_rcnn)
+    model = FPNMaskRCNNTrainChain(faster_rcnn)
     if exists(args.weight):
         chainer.serializers.load_npz(args.weight, model.faster_rcnn, strict=False)
 

@@ -14,6 +14,7 @@ from ResnetRoIMaskHead import ResnetRoIMaskHead
 from LightRoIMaskHead import LightRoIMaskHead
 from fpn_roi_mask_head import FPNRoIMaskHead
 from feature_pyramid_network import FeaturePyramidNetwork
+from multilevel_region_proposal_network import MultilevelRegionProposalNetwork
 import cv2
 
 
@@ -26,7 +27,7 @@ class MaskRCNNResnet50(FasterRCNN):
                  min_size=600,
                  max_size=1000,
                  ratios=[0.5, 1, 2],
-                 anchor_scales=[8],
+                 anchor_scales=[8, 16, 32],
                  rpn_initialW=None,
                  loc_initialW=None,
                  score_initialW=None,
@@ -48,22 +49,25 @@ class MaskRCNNResnet50(FasterRCNN):
             extractor = FeaturePyramidNetwork()
             rpn_in_channels = 256
             rpn_mid_channels = 256  # ??
+            rpn = MultilevelRegionProposalNetwork(
+                    256,
+                    256)
         elif backbone == 'c4':
             extractor = C4Backbone('auto')
             rpn_in_channels = 1024
             rpn_mid_channels = 516  # ??
+            rpn = RegionProposalNetwork(
+                1024,
+                516,
+                ratios=ratios,
+                anchor_scales=anchor_scales,
+                feat_stride=self.feat_stride,
+                initialW=rpn_initialW,
+                proposal_creator_params=proposal_creator_params,
+            )
         else:
             raise ValueError('select backbone frome fpn or c4: {}'.format(backbone))
 
-        rpn = RegionProposalNetwork(
-            rpn_in_channels,
-            rpn_mid_channels,
-            ratios=ratios,
-            anchor_scales=anchor_scales,
-            feat_stride=self.feat_stride,
-            initialW=rpn_initialW,
-            proposal_creator_params=proposal_creator_params,
-        )
 
         if head_arch == 'res5':
             head = ResnetRoIMaskHead(
