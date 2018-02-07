@@ -5,25 +5,29 @@ Mask R-CNN http://arxiv.org/abs/1703.06870
 
 Light-Head R-CNN: http://arxiv.org/abs/1711.07264
 
-# 現状
+# current status
 
-※Light-Headバージョンと比較を作って更新します
+using LightHead architecture
 
-![](imgs/1.jpg)
-![](imgs/45.jpg)
-![](imgs/47.jpg)
+Good examples :)
 
-# todo、問題点など
+![](imgs/008.jpg)
+![](imgs/082.jpg)
+
+many results are available here.
+https://drive.google.com/drive/u/1/folders/1BwYDFdGpaRNWTU2HyV18VuDvwqndv0e_
+
+# todo, issues
 
 - backbone architectureは、論文の中で言うC4(Resnet50ベース)しか実装していません
 - head architectureとして、試しにLight Head RCNNで提案されているものを実装してみました
-- ROI Alignを実装していません
-- RPNが出力したROIに対してMask推定をするのと並行して、ROIの位置修正（回帰）を行っているので、出力したMaskと最終的なBounding Boxが一致していません（ex.キリンのマスクが右の方でバッサリ切れている)
 - 学習を進めるとどんどんメモリ使用量が増えていく問題があるので、現在調査中です。
 メモリ64GBのp2.xlargeインスタンスで学習したところ、データを1周したあとで増加は止まったので、そうゆう挙動で正しいのかもしれません。
 ただ、メモリ16GBのマシンだと動かないのは個人的に困っているので、調査を続けます。
+- add prediction notebook
+- keypoint detection
 
-# 準備
+# setup
 
 python=3.6
 
@@ -38,6 +42,13 @@ MSCOCOをダウンロードしてdata以下に展開
 - train2014.zip
 - val2014.zip
 - annotations_trainval2014.zip
+
+# pretrained model
+
+| architecture | url |
+|:-----------|:------------:|
+| light head | https://drive.google.com/file/d/10tBJpWkimyr5r_DZ8wXsKPsb7-zm_7BT/view?usp=sharing |
+
 
 # acknowledgement
 

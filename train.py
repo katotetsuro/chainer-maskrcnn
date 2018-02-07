@@ -9,6 +9,7 @@ from chainerui.extensions import CommandsExtension
 import cv2
 import numpy as np
 from MaskRCNNTrainChain import MaskRCNNTrainChain
+from fpn_maskrcnn_train_chain import FPNMaskRCNNTrainChain
 from MaskRCNNResnet50 import MaskRCNNResnet50
 from COCODataset import COCOMaskLoader
 
@@ -74,9 +75,10 @@ def main():
     faster_rcnn = MaskRCNNResnet50(
         n_fg_class=len(labels), backbone=args.backbone, head_arch=args.head_arch)
     faster_rcnn.use_preset('evaluate')
-    model = MaskRCNNTrainChain(faster_rcnn)
+    #model = MaskRCNNTrainChain(faster_rcnn)
+    model = FPNMaskRCNNTrainChain(faster_rcnn)
     if exists(args.weight):
-        chainer.serializers.load_npz(args.weight, model.faster_rcnn)
+        chainer.serializers.load_npz(args.weight, model.faster_rcnn, strict=False)
 
     if args.gpu >= 0:
         chainer.cuda.get_device_from_id(args.gpu).use()
@@ -121,7 +123,7 @@ def main():
     trainer.extend(
         extensions.snapshot_object(model.faster_rcnn,
                                    'model_iter_{.updater.iteration}.npz'),
-        trigger=(10000, 'iteration'))
+        trigger=(40000, 'iteration'))
 
     trainer.extend(
         extensions.ExponentialShift('lr', 0.1), trigger=(2, 'epoch'))

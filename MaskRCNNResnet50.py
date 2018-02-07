@@ -14,6 +14,7 @@ from ResnetRoIMaskHead import ResnetRoIMaskHead
 from LightRoIMaskHead import LightRoIMaskHead
 from fpn_roi_mask_head import FPNRoIMaskHead
 from feature_pyramid_network import FeaturePyramidNetwork
+from multilevel_region_proposal_network import MultilevelRegionProposalNetwork
 import cv2
 
 
@@ -48,22 +49,25 @@ class MaskRCNNResnet50(FasterRCNN):
             extractor = FeaturePyramidNetwork()
             rpn_in_channels = 256
             rpn_mid_channels = 256  # ??
+            rpn = MultilevelRegionProposalNetwork(
+                    256,
+                    256)
         elif backbone == 'c4':
             extractor = C4Backbone('auto')
             rpn_in_channels = 1024
             rpn_mid_channels = 516  # ??
+            rpn = RegionProposalNetwork(
+                1024,
+                516,
+                ratios=ratios,
+                anchor_scales=anchor_scales,
+                feat_stride=self.feat_stride,
+                initialW=rpn_initialW,
+                proposal_creator_params=proposal_creator_params,
+            )
         else:
             raise ValueError('select backbone frome fpn or c4: {}'.format(backbone))
 
-        rpn = RegionProposalNetwork(
-            rpn_in_channels,
-            rpn_mid_channels,
-            ratios=ratios,
-            anchor_scales=anchor_scales,
-            feat_stride=self.feat_stride,
-            initialW=rpn_initialW,
-            proposal_creator_params=proposal_creator_params,
-        )
 
         if head_arch == 'res5':
             head = ResnetRoIMaskHead(
@@ -145,6 +149,13 @@ class MaskRCNNResnet50(FasterRCNN):
             roi_cls_loc = roi_cls_locs.data
             roi_score = roi_scores.data
             roi = rois / scale
+            
+            if roi_cls_loc.shape[1] == 4:
+                roi_cls_loc = self.xp.tile(roi_cls_loc, self.n_class)
+
+            # if loc prediction layer uses shared weight, expand (though, not optimized way)
+            if roi_cls_loc.shape[1] == 4:
+                roi_cls_loc = self.xp.tile(roi_cls_loc, self.n_class)
 
             # Convert predictions to bounding boxes in image coordinates.
             # Bounding boxes are scaled to the scale of the input images.
@@ -178,13 +189,13 @@ class MaskRCNNResnet50(FasterRCNN):
                         chainer.function.no_backprop_mode():
                     # because we are assuming batch size=1, all elements of roi_indices is zero.
                     roi_indices = self.xp.zeros(roi.shape[0])
-                    mask = self.head.predict_mask(bbox * scale, roi_indices)
+                    bbox_gpu = cuda.to_gpu(bbox) if chainer.cuda.available else bbox
+                    mask = self.head.predict_mask(bbox_gpu * scale, roi_indices)
                 mask = F.sigmoid(mask).data
                 mask = cuda.to_cpu(mask)
                 # extract single channel per detected box, with correspong labels
                 # label=0 indicates background, so we should shift with +1
-                mask = mask[:, label + 1]
-                mask = np.concatenate(mask, axis=0)
+                mask = mask[np.arange(mask.shape[0]), label + 1]
 
                 # maskをresizeする
                 for i, (b, m) in enumerate(zip(bbox, mask)):
