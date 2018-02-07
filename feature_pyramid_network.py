@@ -48,10 +48,5 @@ class FeaturePyramidNetwork(chainer.Chain):
         p2 = self.conv_p2(
             F.unpooling_2d(p3, ksize=2, outsize=(
                 c2.shape[2:4])) + self.lat_p2(c2))
-<<<<<<< HEAD
         # fine to coarse
         return p2, p3, p4, p5  
-=======
-
-        return p5, p4, p3, p2
->>>>>>> c21965e10a4309e4b9ffcee0e0d3a8069446f023
