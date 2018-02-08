@@ -40,7 +40,7 @@ class FeaturePyramidNetwork(chainer.Chain):
                 in_channels=None, out_channels=256, ksize=1, stride=1, pad=0)
 
         # anchor_sizes / anchor_base anchor_base is invisible from lamba function??
-        anchor_scales = list(map(lambda x: x/float(self.anchor_base), self.anchor_sizes))
+        self.anchor_scales = list(map(lambda x: x/float(self.anchor_base), self.anchor_sizes))
 
     def __call__(self, x):
         # bottom-up pathway

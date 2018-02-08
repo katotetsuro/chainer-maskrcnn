@@ -107,10 +107,9 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
 
         # mask
         # https://engineer.dena.jp/2017/12/chainercvmask-r-cnn.html
-        roi_mask = roi_cls_mask[self.xp.arange(n_sample), gt_roi_label]
+        roi_mask = roi_cls_mask[self.xp.arange(n_sample), gt_roi_label-1]
         mask_loss = F.sigmoid_cross_entropy(roi_mask[0:gt_roi_mask.shape[0]],
                                             gt_roi_mask)
-
 
         loss = rpn_loc_loss + rpn_cls_loss + roi_loc_loss + roi_cls_loss + mask_loss
 
