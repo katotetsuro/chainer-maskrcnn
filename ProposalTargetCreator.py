@@ -8,11 +8,13 @@ import cv2
 # GroundTruthと近いbox, label, maskだけをフィルタリングする
 class ProposalTargetCreator(object):
     def __init__(self,
+                 sizes=[16],
                  n_sample=128,
                  pos_ratio=0.25,
                  pos_iou_thresh=0.5,
                  neg_iou_thresh_hi=0.5,
                  neg_iou_thresh_lo=0.0):
+        self.sizes = sizes
         self.n_sample = n_sample
         self.pos_ratio = pos_ratio
         self.pos_iou_thresh = pos_iou_thresh
@@ -24,6 +26,7 @@ class ProposalTargetCreator(object):
                  bbox,
                  label,
                  mask,
+                 levels,
                  loc_normalize_mean=(0., 0., 0., 0.),
                  loc_normalize_std=(0.1, 0.1, 0.2, 0.2),
                  mask_size=14):
@@ -32,10 +35,17 @@ class ProposalTargetCreator(object):
         bbox = cuda.to_cpu(bbox)
         label = cuda.to_cpu(label)
         mask = cuda.to_cpu(mask)
+        levels = cuda.to_cpu(levels)
 
         n_bbox, _ = bbox.shape
 
         roi = np.concatenate((roi, bbox), axis=0)
+        # feature levels for bbox are determined by most smiliar spatial scale
+        bbox_levels = list()
+        for box in bbox:
+            diffs = np.array([abs((box[0]-box[2] + box[3]-box[1])*0.5 - s) for s in self.sizes])
+            bbox_levels.append(diffs.argmin())
+        levels = np.concatenate([levels, bbox_levels])
 
         pos_roi_per_image = np.round(self.n_sample * self.pos_ratio)
         iou = bbox_iou(roi, bbox)
@@ -68,6 +78,7 @@ class ProposalTargetCreator(object):
         gt_roi_label = gt_roi_label[keep_index]
         gt_roi_label[pos_roi_per_this_image:] = 0  # negative labels --> 0
         sample_roi = roi[keep_index]
+        sample_levels = levels[keep_index]
 
         # Compute offsets and scales to match sampled RoIs to the GTs.
         gt_roi_loc = bbox2loc(sample_roi, bbox[gt_assignment[keep_index]])
@@ -93,4 +104,4 @@ class ProposalTargetCreator(object):
             gt_roi_loc = cuda.to_gpu(gt_roi_loc)
             gt_roi_label = cuda.to_gpu(gt_roi_label)
             gt_roi_mask = cuda.to_gpu(gt_roi_mask)
-        return sample_roi, gt_roi_loc, gt_roi_label, gt_roi_mask
+        return sample_roi, sample_levels, gt_roi_loc, gt_roi_label, gt_roi_mask

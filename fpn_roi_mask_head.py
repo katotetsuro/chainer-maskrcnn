@@ -41,29 +41,27 @@ class FPNRoIMaskHead(chainer.Chain):
             self.conv2 = L.Convolution2D(
                 in_channels=None,
                 out_channels=n_class - 1,
-                ksize=3,
+                ksize=1,
                 stride=1,
-                pad=1,
+                pad=0,
                 initialW=mask_initialW)
 
         self.n_class = n_class
         self.roi_size_box = roi_size_box
         self.roi_size_mask = roi_size_mask
 
-    def __call__(self, x, proposals):
+    def __call__(self, x, indices_and_rois, spatial_scales):
 
         pool_box = list()
         pool_mask = list()
-        for f, p in zip(x, proposals):
-            rois, roi_indices, spatial_scale = proposals[0]
-            roi_indices = roi_indices.astype(np.float32)
-            indices_and_rois = self.xp.concatenate(
-                (roi_indices[:, None], rois), axis=1)
-
-            pool_box.append(_roi_align_2d_yx(f, indices_and_rois, self.roi_size_box,
-                                        self.roi_size_box, spatial_scale))
-            pool_mask.append(_roi_align_2d_yx(f, indices_and_rois, self.roi_size_mask,
-                                         self.roi_size_mask, spatial_scale))
+        for f, i, s in zip(x, indices_and_rois, spatial_scales):
+            # https://github.com/chainer/chainer/issues/4012
+            if i.shape[0] == 0:
+                continue
+            pool_box.append(_roi_align_2d_yx(f, i, self.roi_size_box,
+                                        self.roi_size_box, s))
+            pool_mask.append(_roi_align_2d_yx(f, i, self.roi_size_mask,
+                                         self.roi_size_mask, s))
 
         pool_box = F.concat(pool_box, axis=0)
         pool_mask = F.concat(pool_mask, axis=0)

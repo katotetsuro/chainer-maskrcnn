@@ -39,8 +39,7 @@ class MultilevelRegionProposalNetwork(chainer.Chain):
             :class:`~chainercv.links.model.faster_rcnn.ProposalCreator`
         """
     def __init__(
-            self, in_channels=512, mid_channels=512, ratios=[0.5, 1, 2],
-            anchor_scales=[2, 4, 8, 16], feat_strides=[4, 8, 16, 32],
+            self, anchor_scales, feat_strides, in_channels=256, mid_channels=256, ratios=[0.5, 1, 2],
             initialW=None,
             proposal_creator_params=dict()):
         if len(anchor_scales) != len(feat_strides):

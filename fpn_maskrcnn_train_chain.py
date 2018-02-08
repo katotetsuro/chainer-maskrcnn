@@ -20,8 +20,9 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
                  faster_rcnn,
                  rpn_sigma=3.,
                  roi_sigma=1.,
-                 anchor_target_creator=AnchorTargetCreator(),
-                 proposal_target_creator=ProposalTargetCreator()):
+                 anchor_target_creator=AnchorTargetCreator()):
+        # todo: clean up class dependencies
+        proposal_target_creator = ProposalTargetCreator(faster_rcnn.extractor.anchor_sizes)
         super(FPNMaskRCNNTrainChain, self).__init__(
             faster_rcnn, proposal_target_creator=proposal_target_creator)
 
@@ -50,8 +51,7 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
         label = labels[0]
         mask = masks[0]
         
-        # iterate over feature pyramids
-        rpn_locs, rpn_scores, rois, roi_indices, anchor = self.faster_rcnn.rpn(
+        rpn_locs, rpn_scores, rois, roi_indices, anchor, levels = self.faster_rcnn.rpn(
             features, img_size, scale)
 
         # Since batch size is one, convert variables to singular form
@@ -61,18 +61,25 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
 
         # Sample RoIs and forward
         # gt_roi_labelになった時点で [0, NUM_FOREGROUND_CLASS-1]が[1, NUM_FOREGROUND_CLASS]にシフトしている
-        sample_roi, gt_roi_loc, gt_roi_label, gt_roi_mask = self.proposal_target_creator(
+        sample_roi, sample_levels, gt_roi_loc, gt_roi_label, gt_roi_mask = self.proposal_target_creator(
             roi,
             bbox,
             label,
             mask,
+            levels,
             self.loc_normalize_mean,
             self.loc_normalize_std,
-            mask_size=14)
+            mask_size=28)
+
 
         sample_roi_index = self.xp.zeros(
             (len(sample_roi), ), dtype=np.int32)
-
+        
+        # join roi and index of batch
+        indices_and_rois = self.xp.concatenate(
+            (sample_roi_index[:, None], sample_roi), axis=1).astype(self.xp.float32)
+        # separate (rois, roi_indices) by sample_levels
+        indices_and_rois = [indices_and_rois[sample_levels==i] for i in range(len(features))]
 
         # RPN losses
         gt_rpn_loc, gt_rpn_label = self.anchor_target_creator(
@@ -81,13 +88,41 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
                                        gt_rpn_label, self.rpn_sigma)
         rpn_cls_loss = F.softmax_cross_entropy(rpn_score, gt_rpn_label)
 
+        # Losses for outputs of the head.
+        roi_cls_loc, roi_score, roi_cls_mask = self.faster_rcnn.head(
+                features, indices_and_rois, self.faster_rcnn.extractor.spatial_scales)
 
-        loss = rpn_loc_loss + rpn_cls_loss
+        # Losses for outputs of the head.
+        n_sample = roi_cls_loc.shape[0]
+        roi_cls_loc = roi_cls_loc.reshape(n_sample, -1, 4)
+        # light-headのときはそのまま使う
+        if roi_cls_loc.shape[1] == 1:
+            roi_loc = roi_cls_loc.reshape(n_sample, 4)
+        else:
+            roi_loc = roi_cls_loc[self.xp.arange(n_sample), gt_roi_label]
+
+        roi_loc_loss = _fast_rcnn_loc_loss(roi_loc, gt_roi_loc, gt_roi_label,
+                                           self.roi_sigma)
+        roi_cls_loss = F.softmax_cross_entropy(roi_score, gt_roi_label)
+
+        # mask
+        # https://engineer.dena.jp/2017/12/chainercvmask-r-cnn.html
+        roi_mask = roi_cls_mask[self.xp.arange(n_sample), gt_roi_label]
+        mask_loss = F.sigmoid_cross_entropy(roi_mask[0:gt_roi_mask.shape[0]],
+                                            gt_roi_mask)
+
+
+        loss = rpn_loc_loss + rpn_cls_loss + roi_loc_loss + roi_cls_loss + mask_loss
 
         chainer.reporter.report({
             'rpn_loc_loss': rpn_loc_loss,
             'rpn_cls_loss': rpn_cls_loss,
+            'roi_loc_loss': roi_loc_loss,
+            'roi_cls_loss': roi_cls_loss,
+            'mask_loss': mask_loss,
             'loss': loss
         }, self)
+
+        #import pdb; pdb.set_trace()
 
         return loss

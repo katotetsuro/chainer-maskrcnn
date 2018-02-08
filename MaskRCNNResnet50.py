@@ -47,11 +47,10 @@ class MaskRCNNResnet50(FasterRCNN):
 
         if backbone == 'fpn':
             extractor = FeaturePyramidNetwork()
+            print('feat_strides:', extractor.feat_strides, 'spatial_scales:', extractor.spatial_scales)
             rpn_in_channels = 256
             rpn_mid_channels = 256  # ??
-            rpn = MultilevelRegionProposalNetwork(
-                    256,
-                    256)
+            rpn = MultilevelRegionProposalNetwork(anchor_scales=extractor.anchor_scales, feat_strides=extractor.feat_strides)
         elif backbone == 'c4':
             extractor = C4Backbone('auto')
             rpn_in_channels = 1024
@@ -113,10 +112,15 @@ class MaskRCNNResnet50(FasterRCNN):
         rpn_locs, rpn_scores, rois, roi_indices, anchor, levels =\
             self.rpn(h, img_size, scale)
 
-        return rois, levels
+        # join roi and index of batch
+        roi_indices = roi_indices.astype(np.float32)
+        indices_and_rois = self.xp.concatenate(
+            (roi_indices[:, None], rois), axis=1)
+        # separate (rois, roi_indices) by levels
+        indices_and_rois = [indices_and_rois[levels==i] for i in range(len(h))]
 
         if chainer.config.train:
-            roi_cls_locs, roi_scores, mask = self.head(h, rois, roi_indices)
+            roi_cls_locs, roi_scores, mask = self.head(h, indices_and_rois, self.extractor.spatial_scales)
             return roi_cls_locs, roi_scores, rois, roi_indices, mask
         else:
             roi_cls_locs, roi_scores = self.head(h, rois, roi_indices)
