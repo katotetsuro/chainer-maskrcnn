@@ -164,4 +164,5 @@ class ProposalCreator(object):
 
         if xp != np:
             roi = cuda.to_gpu(roi)
+            level_indices = cuda.to_gpu(level_indices)
         return roi, level_indices
