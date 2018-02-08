@@ -104,4 +104,5 @@ class ProposalTargetCreator(object):
             gt_roi_loc = cuda.to_gpu(gt_roi_loc)
             gt_roi_label = cuda.to_gpu(gt_roi_label)
             gt_roi_mask = cuda.to_gpu(gt_roi_mask)
+            sample_levels = cuda.to_gpu(sample_levels)
         return sample_roi, sample_levels, gt_roi_loc, gt_roi_label, gt_roi_mask
