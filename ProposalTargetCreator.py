@@ -9,7 +9,7 @@ import cv2
 class ProposalTargetCreator(object):
     def __init__(self,
                  sizes=[16],
-                 n_sample=128,
+                 n_sample=256,
                  pos_ratio=0.25,
                  pos_iou_thresh=0.5,
                  neg_iou_thresh_hi=0.5,

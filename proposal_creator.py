@@ -57,7 +57,7 @@ class ProposalCreator(object):
                  n_test_pre_nms=6000,
                  n_test_post_nms=300,
                  force_cpu_nms=False,
-                 min_size=8
+                 min_size=16
                  ):
 
         self.nms_thresh = nms_thresh
