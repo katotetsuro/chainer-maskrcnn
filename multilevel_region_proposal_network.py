@@ -8,7 +8,27 @@ from  chainercv.links.model.faster_rcnn.region_proposal_network import _enumerat
 
 from chainercv.links.model.faster_rcnn.utils.generate_anchor_base import \
     generate_anchor_base
-from proposal_creator import ProposalCreator
+#from proposal_creator import ProposalCreator
+from chainercv.links.model.faster_rcnn.utils.proposal_creator import ProposalCreator
+
+
+# original code from Detectron
+# https://github.com/facebookresearch/Detectron/blob/master/lib/modeling/FPN.py
+def map_rois_to_fpn_levels(xp, rois, k_min=2, k_max=6):
+    """Determine which FPN level each RoI in a set of RoIs should map to based
+    on the heuristic in the FPN paper.
+    roi: assume (R, 4), y_min, x_min, y_max, x_max
+    """
+    # Compute level ids
+    area = xp.prod(rois[:, 2:] - rois[:, :2], axis=1)
+    s = xp.sqrt(area)
+    s0 = 224
+    lvl0 = 4
+
+    # Eqn.(1) in FPN paper
+    target_lvls = xp.floor(lvl0 + xp.log2(s / s0 + 1e-6))
+    target_lvls = xp.clip(target_lvls, k_min, k_max) - k_min
+    return target_lvls
 
 class MultilevelRegionProposalNetwork(chainer.Chain):
 
@@ -102,7 +122,6 @@ class MultilevelRegionProposalNetwork(chainer.Chain):
         scores = list()
         fg_scores = list()
         anchors = list()
-        level_indices = list()  
         for i, x in enumerate(xs):
             n, _, hh, ww = x.shape
             anchor = _enumerate_shifted_anchor(
@@ -124,31 +143,23 @@ class MultilevelRegionProposalNetwork(chainer.Chain):
             scores.append(rpn_scores)
             fg_scores.append(rpn_fg_scores)
             anchors.append(anchor)
-            # indicates level index, which generates these anchor.
-            indices = self.xp.empty((rpn_fg_scores.shape), dtype=self.xp.float32)
-            indices.fill(i)
-            level_indices.append(indices)
 
         # chainer.functions's default axis=1, but explicitly for myself.
         locs = F.concat(locs, axis=1)
         scores = F.concat(scores, axis=1)
         fg_scores = F.concat(fg_scores, axis=1)
         anchors = self.xp.concatenate(anchors, axis=0)
-        level_indices = self.xp.concatenate(level_indices, axis=1)
 
         rois = list()
         roi_indices = list()
-        levels = list()
         for i in range(n):
-            roi, l = self.proposal_layer(
-                locs[i].array, fg_scores[i].array, anchors, level_indices[i], img_size,
-                scale=scale)
+            roi = self.proposal_layer(
+                locs[i].array, fg_scores[i].array, anchors, img_size, scale=scale)
             batch_index = i * self.xp.ones((len(roi),), dtype=np.int32)
             rois.append(roi)
-            levels.append(l)
             roi_indices.append(batch_index)
 
         rois = self.xp.concatenate(rois, axis=0)
-        levels = self.xp.concatenate(levels, axis=0)
+        levels = map_rois_to_fpn_levels(self.xp, rois)
         roi_indices = self.xp.concatenate(roi_indices, axis=0)
         return locs, scores, rois, roi_indices, anchors, levels

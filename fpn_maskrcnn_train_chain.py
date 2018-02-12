@@ -62,7 +62,7 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
 
         # Sample RoIs and forward
         # gt_roi_labelになった時点で [0, NUM_FOREGROUND_CLASS-1]が[1, NUM_FOREGROUND_CLASS]にシフトしている
-        sample_roi, sample_levels, gt_roi_loc, gt_roi_label, gt_roi_mask = self.proposal_target_creator(
+        sample_roi, gt_roi_loc, gt_roi_label, gt_roi_mask, gt_mask_indices, split_index = self.proposal_target_creator(
             roi,
             bbox,
             label,
@@ -72,37 +72,17 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
             self.loc_normalize_std,
             mask_size=28)
 
-        #return sample_roi, sample_levels, gt_roi_label, gt_roi_mask
+        #print('check', sample_roi.shape[0], gt_roi_loc.shape[0], gt_roi_label.shape[0], split_index)
 
         sample_roi_index = self.xp.zeros(
             (len(sample_roi), ), dtype=np.int32)
 
-        # sample_levelsが[0,...0,1,...,1,2,...]となるように並べた場合、元々の配列のindexがいくつのデータかを指す
-        # cupyのargsortの実装はquicksortで、同じlevelの中でも、元の順序関係が保持されないことに注意
-        level_order_box_indices = sample_levels.argsort()
-
-        # cupyのargsortにmergesortが実装されていないので、しょうがなく一度cpuに戻してやる場合
-        #sample_levels = chainer.cuda.to_cpu(samle_levels)
-        #level_order_box_indices = sample_levels.argsort(kind='mergesort')
-        #level_order_box_indices = chainer.cuda.to_gpu(level_order_box_indices)
-
         # join roi and index of batch
         indices_and_rois = self.xp.concatenate(
             (sample_roi_index[:, None], sample_roi), axis=1).astype(self.xp.float32)
-        # separate (rois, roi_indices) by sample_levels
-        # ↓このやり方は、level_order_box_indicesと順序が一致しない
-        #indices_and_rois = [indices_and_rois[sample_levels==i] for i in range(len(features))]
-
-        indices_and_rois = indices_and_rois[level_order_box_indices]
-        # cupyにuniqueがないので、自力実装
-        # levelが変わる部分のindexを抽出して、levelごとにsplitする
-        sorted_levels = sample_levels[level_order_box_indices]
-        sp, = np.where([sorted_levels[i]!=sorted_levels[i+1] for i in range(len(sample_levels)-1)])
-        sp += 1
-        indices_and_rois = self.xp.split(indices_and_rois, sp)
-
-        gt_roi_loc = gt_roi_loc[level_order_box_indices]
-        gt_roi_label = gt_roi_label[level_order_box_indices]
+        split_index = chainer.cuda.to_cpu(split_index)
+        #print(type(split_index), split_index)
+        indices_and_rois = self.xp.split(indices_and_rois, split_index)
 
         # RPN losses
         gt_rpn_loc, gt_rpn_label = self.anchor_target_creator(
@@ -124,17 +104,16 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
         else:
             roi_loc = roi_cls_loc[self.xp.arange(n_sample), gt_roi_label]
 
+        #print(roi_loc.shape, gt_roi_loc.shape, roi_score.shape,  gt_roi_label.shape)
         roi_loc_loss = _fast_rcnn_loc_loss(roi_loc, gt_roi_loc, gt_roi_label,
                                            self.roi_sigma)
         roi_cls_loss = F.softmax_cross_entropy(roi_score, gt_roi_label)
 
         # mask
         # https://engineer.dena.jp/2017/12/chainercvmask-r-cnn.html
-        l = level_order_box_indices
-        a, = self.xp.where(l < gt_roi_mask.shape[0])
         roi_mask = roi_cls_mask[self.xp.arange(n_sample), gt_roi_label-1]
-        mask_loss = F.sigmoid_cross_entropy(roi_mask[a],
-                                            gt_roi_mask[l[a]])
+        mask_loss = F.sigmoid_cross_entropy(roi_mask[gt_mask_indices],
+                                            gt_roi_mask)
 
         loss = rpn_loc_loss + rpn_cls_loss + roi_loc_loss + roi_cls_loss + mask_loss
 
