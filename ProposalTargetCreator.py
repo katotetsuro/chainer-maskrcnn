@@ -95,9 +95,12 @@ class ProposalTargetCreator(object):
         gt_roi_loc = gt_roi_loc[indices]
         gt_roi_label = gt_roi_label[indices]
 
-        values, split_index, counts = np.unique(sample_levels, return_index=True, return_counts=True)
-        split_index = split_index[1:]
-        print('levels', values, counts)
+        #values, split_index, counts = np.unique(sample_levels, return_index=True, return_counts=True)
+        #split_index = split_index[1:]
+        #print('levels', values, counts)
+        bins = np.bincount(sample_levels.astype(np.int32))
+        split_index = np.add.accumulate(bins)
+        print('levels', bins, split_index)
 
         # https://engineer.dena.jp/2017/12/chainercvmask-r-cnn.html
         # keep_indexの前半に並べられていたpositive exampleが、ソート後にどこに行ってしまったか追いかける
