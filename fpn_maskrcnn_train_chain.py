@@ -46,14 +46,22 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
         _, _, H, W = imgs.shape
         img_size = (H, W)
 
+        fw_s = time.time()
+        fw_e_s = time.time()
         features = self.faster_rcnn.extractor(imgs)
+        fw_e_e = time.time()
+        #print(f'forward(extractor):{fw_e_e-fw_e_s}')
+
         # Since batch size is one, convert variables to singular form
         bbox = bboxes[0]
         label = labels[0]
         mask = masks[0]
 
+        fw_rpn_s = time.time()
         rpn_locs, rpn_scores, rois, roi_indices, anchor, levels = self.faster_rcnn.rpn(
             features, img_size, scale)
+        fw_rpn_e = time.time()
+        #print(f'forward(rpn):{fw_rpn_e-fw_rpn_s}')
 
         # Since batch size is one, convert variables to singular form
         rpn_score = rpn_scores[0]
@@ -62,6 +70,7 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
 
         # Sample RoIs and forward
         # gt_roi_labelになった時点で [0, NUM_FOREGROUND_CLASS-1]が[1, NUM_FOREGROUND_CLASS]にシフトしている
+        fw_prop_s = time.time()
         sample_roi, gt_roi_loc, gt_roi_label, gt_roi_mask, gt_mask_indices, split_index = self.proposal_target_creator(
             roi,
             bbox,
@@ -71,6 +80,9 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
             self.loc_normalize_mean,
             self.loc_normalize_std,
             mask_size=28)
+        fw_prop_e = time.time()
+        #print(f'forward(proposal):{fw_prop_e-fw_prop_s}')
+
 
         #print('check', sample_roi.shape[0], gt_roi_loc.shape[0], gt_roi_label.shape[0], split_index)
 
@@ -92,8 +104,11 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
         rpn_cls_loss = F.softmax_cross_entropy(rpn_score, gt_rpn_label)
 
         # Losses for outputs of the head.
+        fw_head_s = time.time()
         roi_cls_loc, roi_score, roi_cls_mask = self.faster_rcnn.head(
                 features, indices_and_rois, self.faster_rcnn.extractor.spatial_scales)
+        fw_head_e = time.time()
+        #print(f'forward(head):{fw_head_e-fw_head_s}')
 
         # Losses for outputs of the head.
         n_sample = roi_cls_loc.shape[0]
@@ -117,6 +132,9 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
 
         loss = rpn_loc_loss + rpn_cls_loss + roi_loc_loss + roi_cls_loss + mask_loss
 
+        fw_e = time.time()
+        #print(f'forward(total):{fw_e-fw_s}')
+
         chainer.reporter.report({
             'rpn_loc_loss': rpn_loc_loss,
             'rpn_cls_loss': rpn_cls_loss,
@@ -126,8 +144,9 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
             'loss': loss
         }, self)
 
-        #import pdb; pdb.set_trace()
+        #bw_s = time.time()
+        #loss.backward()
+        #bw_e = time.time()
+        #print(f'backward(total):{bw_e-bw_s}')
 
-        if math.isnan(loss.data.any()):
-            loss = chainer.Variable(self.xp.array([0], dtype=self.xp.float32))
         return loss
