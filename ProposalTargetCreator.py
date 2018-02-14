@@ -37,8 +37,6 @@ class ProposalTargetCreator(object):
         mask = cuda.to_cpu(mask)
         levels = cuda.to_cpu(levels)
 
-        assert roi.shape[0] == levels.shape[0], (roi.shape[0], levels.shape[0])
-
         n_bbox, _ = bbox.shape
         n_proposal = roi.shape[0]
         roi = np.concatenate((roi, bbox), axis=0)
@@ -85,33 +83,10 @@ class ProposalTargetCreator(object):
         gt_roi_loc = ((gt_roi_loc - np.array(loc_normalize_mean, np.float32)) /
                       np.array(loc_normalize_std, np.float32))
 
-        # sort by levels
-        #print(pos_index.shape, pos_index)
-        #print(gt_assignment.shape, gt_assignment)
-        #print(gt_assignment[pos_index].shape, gt_assignment[pos_index])
-        indices = sample_levels.argsort()
-        sample_levels = sample_levels[indices]
-        sample_roi = sample_roi[indices]
-        gt_roi_loc = gt_roi_loc[indices]
-        gt_roi_label = gt_roi_label[indices]
-
-        #values, split_index, counts = np.unique(sample_levels, return_index=True, return_counts=True)
-        #split_index = split_index[1:]
-        #print('levels', values, counts)
-        bins = np.bincount(sample_levels.astype(np.int32))
-        split_index = np.add.accumulate(bins)
-        print('levels', bins, split_index)
-
         # https://engineer.dena.jp/2017/12/chainercvmask-r-cnn.html
-        # keep_indexの前半に並べられていたpositive exampleが、ソート後にどこに行ってしまったか追いかける
-        mask_exists_indices, = np.where(indices < pos_index.shape[0])
-        # gt_assignents[keep_index]をindicesで並べ替えたあと、mask_exists_indicesでスライスする
-        gt_mask_indices = gt_assignment[keep_index][indices][mask_exists_indices]
-#        print(indices[mask_exists_indices], before, gt_mask_indices)
-#        print(before[indices[mask_exists_indices]], gt_mask_indices)
         gt_roi_mask = []
         _, h, w = mask.shape
-        for i, idx in enumerate(gt_mask_indices):
+        for i, idx in enumerate(gt_assignment[pos_index]):
             A = mask[idx,
                      np.max((int(sample_roi[i, 0]),
                              0)):np.min((int(sample_roi[i, 2]), h)),
@@ -122,11 +97,10 @@ class ProposalTargetCreator(object):
 
         gt_roi_mask = xp.array(gt_roi_mask)
 
-
         if xp != np:
             sample_roi = cuda.to_gpu(sample_roi)
             gt_roi_loc = cuda.to_gpu(gt_roi_loc)
             gt_roi_label = cuda.to_gpu(gt_roi_label)
             gt_roi_mask = cuda.to_gpu(gt_roi_mask)
-            split_index = cuda.to_gpu(split_index)
-        return sample_roi,  gt_roi_loc, gt_roi_label, gt_roi_mask, mask_exists_indices, split_index
+            sample_levels = cuda.to_gpu(sample_levels)
+        return sample_roi, sample_levels, gt_roi_loc, gt_roi_label, gt_roi_mask

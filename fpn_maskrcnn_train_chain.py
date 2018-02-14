@@ -71,7 +71,7 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
         # Sample RoIs and forward
         # gt_roi_labelになった時点で [0, NUM_FOREGROUND_CLASS-1]が[1, NUM_FOREGROUND_CLASS]にシフトしている
         fw_prop_s = time.time()
-        sample_roi, gt_roi_loc, gt_roi_label, gt_roi_mask, gt_mask_indices, split_index = self.proposal_target_creator(
+        sample_roi, sample_levels, gt_roi_loc, gt_roi_label, gt_roi_mask = self.proposal_target_creator(
             roi,
             bbox,
             label,
@@ -83,18 +83,15 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
         fw_prop_e = time.time()
         #print(f'forward(proposal):{fw_prop_e-fw_prop_s}')
 
-
-        #print('check', sample_roi.shape[0], gt_roi_loc.shape[0], gt_roi_label.shape[0], split_index)
-
         sample_roi_index = self.xp.zeros(
             (len(sample_roi), ), dtype=np.int32)
 
         # join roi and index of batch
         indices_and_rois = self.xp.concatenate(
             (sample_roi_index[:, None], sample_roi), axis=1).astype(self.xp.float32)
-        split_index = chainer.cuda.to_cpu(split_index)
+        #split_index = chainer.cuda.to_cpu(split_index)
         #print(type(split_index), split_index)
-        indices_and_rois = self.xp.split(indices_and_rois, split_index)
+        #indices_and_rois = self.xp.split(indices_and_rois, split_index)
 
         # RPN losses
         gt_rpn_loc, gt_rpn_label = self.anchor_target_creator(
@@ -106,7 +103,7 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
         # Losses for outputs of the head.
         fw_head_s = time.time()
         roi_cls_loc, roi_score, roi_cls_mask = self.faster_rcnn.head(
-                features, indices_and_rois, self.faster_rcnn.extractor.spatial_scales)
+                features, indices_and_rois, levels, self.faster_rcnn.extractor.spatial_scales)
         fw_head_e = time.time()
         #print(f'forward(head):{fw_head_e-fw_head_s}')
 
@@ -127,7 +124,7 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
         # mask
         # https://engineer.dena.jp/2017/12/chainercvmask-r-cnn.html
         roi_mask = roi_cls_mask[self.xp.arange(n_sample), gt_roi_label-1]
-        mask_loss = F.sigmoid_cross_entropy(roi_mask[gt_mask_indices],
+        mask_loss = F.sigmoid_cross_entropy(roi_mask[:gt_roi_mask.shape[0]],
                                             gt_roi_mask)
 
         loss = rpn_loc_loss + rpn_cls_loss + roi_loc_loss + roi_cls_loss + mask_loss

@@ -50,18 +50,25 @@ class FPNRoIMaskHead(chainer.Chain):
         self.roi_size_box = roi_size_box
         self.roi_size_mask = roi_size_mask
 
-    def __call__(self, x, indices_and_rois, spatial_scales):
+    def __call__(self, x, indices_and_rois, levels, spatial_scales):
 
         pool_box = list()
         pool_mask = list()
-        for f, i, s in zip(x, indices_and_rois, spatial_scales):
-            # https://github.com/chainer/chainer/issues/4012
-            if i.shape[0] == 0:
-                continue
-            pool_box.append(_roi_align_2d_yx(f, i, self.roi_size_box,
-                                        self.roi_size_box, s))
-            pool_mask.append(_roi_align_2d_yx(f, i, self.roi_size_mask,
-                                         self.roi_size_mask, s))
+        levels = chainer.cuda.to_cpu(levels).astype(np.int32)
+        for l, i in zip(levels, indices_and_rois):
+            pool_box.append(_roi_align_2d_yx(x[l], i[None], self.roi_size_box,
+                                        self.roi_size_box, spatial_scales[l]))
+            pool_mask.append(_roi_align_2d_yx(x[l], i[None], self.roi_size_mask,
+                                         self.roi_size_mask, spatial_scales[l]))
+
+        #for f, i, s in zip(x, indices_and_rois, spatial_scales):
+        #    # https://github.com/chainer/chainer/issues/4012
+        #    if i.shape[0] == 0:
+        #        continue
+        #    pool_box.append(_roi_align_2d_yx(f, i, self.roi_size_box,
+        #                                self.roi_size_box, s))
+        #    pool_mask.append(_roi_align_2d_yx(f, i, self.roi_size_mask,
+        #                                 self.roi_size_mask, s))
 
         pool_box = F.concat(pool_box, axis=0)
         pool_mask = F.concat(pool_mask, axis=0)
