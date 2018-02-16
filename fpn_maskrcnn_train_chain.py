@@ -103,7 +103,7 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
         # Losses for outputs of the head.
         fw_head_s = time.time()
         roi_cls_loc, roi_score, roi_cls_mask = self.faster_rcnn.head(
-                features, indices_and_rois, levels, self.faster_rcnn.extractor.spatial_scales)
+                features, indices_and_rois, sample_levels, self.faster_rcnn.extractor.spatial_scales)
         fw_head_e = time.time()
         #print(f'forward(head):{fw_head_e-fw_head_s}')
 
