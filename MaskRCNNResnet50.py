@@ -116,15 +116,13 @@ class MaskRCNNResnet50(FasterRCNN):
         roi_indices = roi_indices.astype(np.float32)
         indices_and_rois = self.xp.concatenate(
             (roi_indices[:, None], rois), axis=1)
-        # separate (rois, roi_indices) by levels
-        indices_and_rois = [indices_and_rois[levels==i] for i in range(len(h))]
 
         if chainer.config.train:
-            roi_cls_locs, roi_scores, mask = self.head(h, indices_and_rois, self.extractor.spatial_scales)
+            roi_cls_locs, roi_scores, mask = self.head(h, indices_and_rois, levels, self.extractor.spatial_scales)
             return roi_cls_locs, roi_scores, rois, roi_indices, mask
         else:
-            roi_cls_locs, roi_scores = self.head(h, rois, roi_indices)
-            return roi_cls_locs, roi_scores, rois, roi_indices
+            roi_cls_locs, roi_scores = self.head(h, indices_and_rois, levels, self.extractor.spatial_scales)
+            return roi_cls_locs, roi_scores, rois, roi_indices, levels
 
     def predict(self, imgs):
         prepared_imgs = list()
@@ -144,12 +142,10 @@ class MaskRCNNResnet50(FasterRCNN):
                     chainer.function.no_backprop_mode():
                 img_var = chainer.Variable(self.xp.asarray(img[None]))
                 scale = img_var.shape[3] / size[1]
-                rois = self.__call__(img_var, scale=scale)
-                #roi_cls_locs, roi_scores, rois, roi_indices = self.__call__(
-                #    img_var, scale=scale)
+                roi_cls_locs, roi_scores, rois, roi_indices, levels = self.__call__(
+                    img_var, scale=scale)
             # We are assuming that batch size is 1.
             roi = rois / scale
-            return roi
             roi_cls_loc = roi_cls_locs.data
             roi_score = roi_scores.data
             
@@ -181,9 +177,10 @@ class MaskRCNNResnet50(FasterRCNN):
             raw_cls_bbox = cuda.to_cpu(cls_bbox)
             raw_prob = cuda.to_cpu(prob)
             raw_roi = cuda.to_cpu(roi)
+            raw_levels = cuda.to_cpu(levels)
 
-            bbox, label, score, roi = self._suppress(raw_cls_bbox, raw_prob,
-                                                     raw_roi)
+            bbox, label, score, roi, levels = self._suppress(raw_cls_bbox, raw_prob,
+                                                     raw_roi, raw_levels)
 
             # predict only mask based on detected roi
             mask_per_image = list()
@@ -191,14 +188,14 @@ class MaskRCNNResnet50(FasterRCNN):
                 with chainer.using_config('train', False), \
                         chainer.function.no_backprop_mode():
                     # because we are assuming batch size=1, all elements of roi_indices is zero.
-                    roi_indices = self.xp.zeros(roi.shape[0])
+                    roi_indices = self.xp.zeros(roi.shape[0], dtype=np.float32)
                     bbox_gpu = cuda.to_gpu(bbox) if chainer.cuda.available else bbox
-                    mask = self.head.predict_mask(bbox_gpu * scale, roi_indices)
+                    indices_and_rois = self.xp.concatenate((roi_indices[:, None], bbox_gpu * scale), axis=1)
+                    
+                    mask = self.head.predict_mask(levels, indices_and_rois, self.extractor.spatial_scales)
                 mask = F.sigmoid(mask).data
                 mask = cuda.to_cpu(mask)
-                # extract single channel per detected box, with correspong labels
-                # label=0 indicates background, so we should shift with +1
-                mask = mask[np.arange(mask.shape[0]), label + 1]
+                mask = mask[np.arange(mask.shape[0]), label]
 
                 # maskをresizeする
                 for i, (b, m) in enumerate(zip(bbox, mask)):
@@ -234,11 +231,12 @@ class MaskRCNNResnet50(FasterRCNN):
 
         return img
 
-    def _suppress(self, raw_cls_bbox, raw_prob, raw_roi):
+    def _suppress(self, raw_cls_bbox, raw_prob, raw_roi, raw_level):
         bbox = list()
         label = list()
         score = list()
         roi = list()
+        level = list()
         # skip cls_id = 0 because it is the background class
         # -> maskは0から始まるから、l-1を使う
         # -> あーしまったTrainChainで最後のクラスToothBlushは範囲外になっておるわ・・
@@ -255,9 +253,12 @@ class MaskRCNNResnet50(FasterRCNN):
             score.append(prob_l[keep])
             raw_roi_l = raw_roi[:, l, :][mask]
             roi.append(raw_roi_l[keep])
+            level_l = raw_level[mask]
+            level.append(level_l[keep])
 
         bbox = np.concatenate(bbox, axis=0).astype(np.float32)
         label = np.concatenate(label, axis=0).astype(np.int32)
         score = np.concatenate(score, axis=0).astype(np.float32)
         roi = np.concatenate(roi, axis=0)
-        return bbox, label, score, roi
+        level = np.concatenate(level, axis=0).astype(np.int32)
+        return bbox, label, score, roi, level

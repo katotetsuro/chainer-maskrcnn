@@ -53,25 +53,12 @@ class FPNRoIMaskHead(chainer.Chain):
     def __call__(self, x, indices_and_rois, levels, spatial_scales):
 
         pool_box = list()
-        pool_mask = list()
         levels = chainer.cuda.to_cpu(levels).astype(np.int32)
         for l, i in zip(levels, indices_and_rois):
             pool_box.append(_roi_align_2d_yx(x[l], i[None], self.roi_size_box,
                                         self.roi_size_box, spatial_scales[l]))
-            pool_mask.append(_roi_align_2d_yx(x[l], i[None], self.roi_size_mask,
-                                         self.roi_size_mask, spatial_scales[l]))
-
-        #for f, i, s in zip(x, indices_and_rois, spatial_scales):
-        #    # https://github.com/chainer/chainer/issues/4012
-        #    if i.shape[0] == 0:
-        #        continue
-        #    pool_box.append(_roi_align_2d_yx(f, i, self.roi_size_box,
-        #                                self.roi_size_box, s))
-        #    pool_mask.append(_roi_align_2d_yx(f, i, self.roi_size_mask,
-        #                                 self.roi_size_mask, s))
 
         pool_box = F.concat(pool_box, axis=0)
-        pool_mask = F.concat(pool_mask, axis=0)
 
         h = F.relu(self.conv1(pool_box))
         h = F.relu(self.fc1(h))
@@ -82,6 +69,11 @@ class FPNRoIMaskHead(chainer.Chain):
         # at first path, we predict box location and class
         # at second path, we predict mask with accurate location from first path
         if chainer.config.train:
+            pool_mask = list()
+            for l, i in zip(levels, indices_and_rois):
+                pool_mask.append(_roi_align_2d_yx(x[l], i[None], self.roi_size_mask,
+                                         self.roi_size_mask, spatial_scales[l]))
+            pool_mask = F.concat(pool_mask, axis=0)
             mask = F.relu(self.mask1(pool_mask))
             mask = F.relu(self.mask2(mask))
             mask = F.relu(self.mask3(mask))
@@ -89,16 +81,20 @@ class FPNRoIMaskHead(chainer.Chain):
             mask = self.conv2(self.deconv1(mask))
             return roi_cls_locs, roi_scores, mask
         else:
-            # cache tfp for second path
-            self.tfp = tfp
+            # cache
+            self.x = x
             return roi_cls_locs, roi_scores
 
-    def predict_mask(self, rois, roi_indices, spatial_scale):
-        roi_indices = roi_indices.astype(np.float32)
-        indices_and_rois = self.xp.concatenate(
-            (roi_indices[:, None], rois), axis=1)
-        pool = _roi_align_2d_yx(self.tfp, indices_and_rois, self.roi_size,
-                                self.roi_size, spatial_scale)
-
-        mask = self.conv2(self.deconv1(pool))
+    def predict_mask(self, levels, indices_and_rois, spatial_scales):
+        pool_mask = list()
+        for l, i in zip(levels, indices_and_rois):
+            pool_mask.append(_roi_align_2d_yx(self.x[l], i[None], self.roi_size_mask,
+                                     self.roi_size_mask, spatial_scales[l]))
+        pool_mask = F.concat(pool_mask, axis=0)
+        mask = F.relu(self.mask1(pool_mask))
+        mask = F.relu(self.mask2(mask))
+        mask = F.relu(self.mask3(mask))
+        mask = F.relu(self.mask4(mask))
+        mask = self.conv2(self.deconv1(mask))
+        
         return mask

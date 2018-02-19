@@ -80,10 +80,6 @@ def main():
     if exists(args.weight):
         chainer.serializers.load_npz(args.weight, model.faster_rcnn, strict=False)
 
-
-    chainer.serializers.load_npz('result/rpn/extractor_5000.npz', model.faster_rcnn.extractor, strict=False)
-    chainer.serializers.load_npz('result/rpn/rpn_5000.npz', model.faster_rcnn.rpn, strict=False)
-
     if args.gpu >= 0:
         chainer.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()
@@ -132,8 +128,8 @@ def main():
     trainer.extend(
         extensions.ExponentialShift('lr', 0.1), trigger=(2, 'epoch'))
 
-    log_interval = 10, 'iteration'
-    print_interval = 10, 'iteration'
+    log_interval = 100, 'iteration'
+    print_interval = 100, 'iteration'
 
     trainer.extend(
         chainer.training.extensions.observe_lr(), trigger=log_interval)
