@@ -23,7 +23,7 @@ def map_rois_to_fpn_levels(xp, rois, k_min=2, k_max=6):
     area = xp.prod(rois[:, 2:] - rois[:, :2], axis=1)
     s = xp.sqrt(area)
     s0 = 224
-    lvl0 = 5
+    lvl0 = 4
 
     # Eqn.(1) in FPN paper
     target_lvls = xp.floor(lvl0 + xp.log2(s / s0 + 1e-6))
