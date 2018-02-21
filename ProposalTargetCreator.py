@@ -3,16 +3,18 @@ from chainer import cuda
 from chainercv.links.model.faster_rcnn.utils.bbox2loc import bbox2loc
 from chainercv.utils.bbox.bbox_iou import bbox_iou
 import cv2
-
+from multilevel_region_proposal_network import map_rois_to_fpn_levels
 
 # GroundTruthと近いbox, label, maskだけをフィルタリングする
 class ProposalTargetCreator(object):
     def __init__(self,
-                 n_sample=128,
+                 sizes=[16],
+                 n_sample=256,
                  pos_ratio=0.25,
                  pos_iou_thresh=0.5,
                  neg_iou_thresh_hi=0.5,
                  neg_iou_thresh_lo=0.0):
+        self.sizes = sizes
         self.n_sample = n_sample
         self.pos_ratio = pos_ratio
         self.pos_iou_thresh = pos_iou_thresh
@@ -24,17 +26,24 @@ class ProposalTargetCreator(object):
                  bbox,
                  label,
                  mask,
+                 levels,
                  loc_normalize_mean=(0., 0., 0., 0.),
-                 loc_normalize_std=(0.1, 0.1, 0.2, 0.2)):
+                 loc_normalize_std=(0.1, 0.1, 0.2, 0.2),
+                 mask_size=14):
         xp = cuda.get_array_module(roi)
         roi = cuda.to_cpu(roi)
         bbox = cuda.to_cpu(bbox)
         label = cuda.to_cpu(label)
         mask = cuda.to_cpu(mask)
+        levels = cuda.to_cpu(levels)
 
         n_bbox, _ = bbox.shape
-
+        n_proposal = roi.shape[0]
         roi = np.concatenate((roi, bbox), axis=0)
+
+        # assign feature levels of ground truth boxes
+        bbox_levels = map_rois_to_fpn_levels(np, bbox)
+        levels = np.concatenate([levels, bbox_levels])
 
         pos_roi_per_image = np.round(self.n_sample * self.pos_ratio)
         iou = bbox_iou(roi, bbox)
@@ -67,6 +76,7 @@ class ProposalTargetCreator(object):
         gt_roi_label = gt_roi_label[keep_index]
         gt_roi_label[pos_roi_per_this_image:] = 0  # negative labels --> 0
         sample_roi = roi[keep_index]
+        sample_levels = levels[keep_index]
 
         # Compute offsets and scales to match sampled RoIs to the GTs.
         gt_roi_loc = bbox2loc(sample_roi, bbox[gt_assignment[keep_index]])
@@ -76,7 +86,6 @@ class ProposalTargetCreator(object):
         # https://engineer.dena.jp/2017/12/chainercvmask-r-cnn.html
         gt_roi_mask = []
         _, h, w = mask.shape
-        masksize = 14
         for i, idx in enumerate(gt_assignment[pos_index]):
             A = mask[idx,
                      np.max((int(sample_roi[i, 0]),
@@ -84,7 +93,7 @@ class ProposalTargetCreator(object):
                      np.max((int(sample_roi[i, 1]),
                              0)):np.min((int(sample_roi[i, 3]), w))]
             gt_roi_mask.append(
-                cv2.resize(A, (masksize, masksize)).astype(np.int32))
+                cv2.resize(A, (mask_size, mask_size)).astype(np.int32))
 
         gt_roi_mask = xp.array(gt_roi_mask)
 
@@ -93,4 +102,5 @@ class ProposalTargetCreator(object):
             gt_roi_loc = cuda.to_gpu(gt_roi_loc)
             gt_roi_label = cuda.to_gpu(gt_roi_label)
             gt_roi_mask = cuda.to_gpu(gt_roi_mask)
-        return sample_roi, gt_roi_loc, gt_roi_label, gt_roi_mask
+            sample_levels = cuda.to_gpu(sample_levels)
+        return sample_roi, sample_levels, gt_roi_loc, gt_roi_label, gt_roi_mask
