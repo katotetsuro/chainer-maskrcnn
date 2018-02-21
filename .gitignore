@@ -11,3 +11,8 @@ data/**/*.json
 data/annotations
 data/train2014
 data/val2014
+*.profile
+*.nvvp
+data/annotations
+data/train2014
+data/val2014
