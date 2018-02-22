@@ -7,10 +7,10 @@ from chainercv.links.model.faster_rcnn.utils.anchor_target_creator import\
 from chainercv.links.model.faster_rcnn.faster_rcnn_train_chain import FasterRCNNTrainChain, _smooth_l1_loss, _fast_rcnn_loc_loss
 import cv2
 import numpy as np
-from MaskRCNNResnet50 import MaskRCNNResnet50
-from ProposalTargetCreator import ProposalTargetCreator
-from feature_pyramid_network import FeaturePyramidNetwork
-from C4Backbone import C4Backbone
+from .maskrcnn_resnet50 import MaskRCNNResnet50
+from .extractor.c4_backbone import C4Backbone
+from .extractor.feature_pyramid_network import FeaturePyramidNetwork
+from chainer_maskrcnn.utils.proposal_target_creator import ProposalTargetCreator
 import time
 import math
 

@@ -3,7 +3,7 @@ from chainer import cuda
 from chainercv.links.model.faster_rcnn.utils.bbox2loc import bbox2loc
 from chainercv.utils.bbox.bbox_iou import bbox_iou
 import cv2
-from multilevel_region_proposal_network import map_rois_to_fpn_levels
+from chainer_maskrcnn.model.rpn.multilevel_region_proposal_network import map_rois_to_fpn_levels
 
 # GroundTruthと近いbox, label, maskだけをフィルタリングする
 class ProposalTargetCreator(object):
