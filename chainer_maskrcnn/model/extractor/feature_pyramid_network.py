@@ -6,15 +6,15 @@ from chainer.links.model.vision.resnet import ResNet50Layers
 
 class FeaturePyramidNetwork(chainer.Chain):
     # determined by network architecture (where stride >1 occurs.)
-    feat_strides=[4, 8, 16, 32, 64]
+    feat_strides = [4, 8, 16, 32, 64]
     # inverse of feat_strides. used in RoIAlign to calculate x in Image Coord to x' in feature map
     spatial_scales = list(map(lambda x: 1./x, feat_strides))
-    anchor_base = 16 # from original implementation. why?
+    anchor_base = 16  # from original implementation. why?
     # from FPN paper.
     anchor_sizes = [32, 64, 128, 256, 512]
     # anchor_sizes / anchor_base anchor_base is invisible from lamba function??
     anchor_scales = list(map(lambda x: x/16., anchor_sizes))
-    
+
     def __init__(self):
         super().__init__()
         with self.init_scope():
@@ -40,7 +40,8 @@ class FeaturePyramidNetwork(chainer.Chain):
                 in_channels=None, out_channels=256, ksize=1, stride=1, pad=0)
 
         # anchor_sizes / anchor_base anchor_base is invisible from lamba function??
-        self.anchor_scales = list(map(lambda x: x/float(self.anchor_base), self.anchor_sizes))
+        self.anchor_scales = list(
+            map(lambda x: x/float(self.anchor_base), self.anchor_sizes))
 
     def __call__(self, x):
         # bottom-up pathway
@@ -67,4 +68,4 @@ class FeaturePyramidNetwork(chainer.Chain):
         p6 = self.conv_p6(p5)
 
         # fine to coarse
-        return p2, p3, p4, p5, p6 
+        return p2, p3, p4, p5, p6

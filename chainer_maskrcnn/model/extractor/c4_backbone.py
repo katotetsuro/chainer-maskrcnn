@@ -3,12 +3,13 @@ import collections
 import chainer.functions as F
 from chainer.links import BatchNormalization
 
+
 class C4Backbone(ResNet50Layers):
     def __init__(self, pretrained_model):
         super().__init__(pretrained_model)
         del self.res5
         del self.fc6
-        
+
         for l in self.links():
             if isinstance(l, BatchNormalization):
                 l.disable_update()

@@ -16,6 +16,7 @@ from os.path import exists, isfile
 import time
 import pickle
 
+
 class Transform(object):
     def __init__(self, faster_rcnn):
         self.faster_rcnn = faster_rcnn
@@ -75,7 +76,8 @@ def main():
     #model = MaskRCNNTrainChain(faster_rcnn)
     model = FPNMaskRCNNTrainChain(faster_rcnn)
     if exists(args.weight):
-        chainer.serializers.load_npz(args.weight, model.faster_rcnn, strict=False)
+        chainer.serializers.load_npz(
+            args.weight, model.faster_rcnn, strict=False)
 
     if args.gpu >= 0:
         chainer.cuda.get_device_from_id(args.gpu).use()
@@ -105,8 +107,10 @@ def main():
     train_data = TransformDataset(coco_train_data, Transform(faster_rcnn))
 
     if args.multi_gpu:
-        train_iters = [chainer.iterators.SerialIterator(train_data, 1, repeat=True, shuffle=True) for i in range(8)]
-        updater = chainer.training.updater.MultiprocessParallelUpdater(train_iters, optimizer, device=range(8))
+        train_iters = [chainer.iterators.SerialIterator(
+            train_data, 1, repeat=True, shuffle=True) for i in range(8)]
+        updater = chainer.training.updater.MultiprocessParallelUpdater(
+            train_iters, optimizer, device=range(8))
 
     else:
         train_iter = chainer.iterators.SerialIterator(
@@ -115,7 +119,7 @@ def main():
             train_iter, optimizer, device=args.gpu)
 
     trainer = chainer.training.Trainer(updater, (args.iteration, 'iteration'),
-                               args.out)
+                                       args.out)
 
     trainer.extend(
         extensions.snapshot_object(model.faster_rcnn,

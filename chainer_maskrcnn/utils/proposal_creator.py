@@ -117,7 +117,8 @@ class ProposalCreator(object):
         score = cuda.to_cpu(score)
         anchor = cuda.to_cpu(anchor)
         level_indices = cuda.to_cpu(level_indices)
-        assert score.shape == level_indices.shape, (score.shape, level_indices.shape)
+        assert score.shape == level_indices.shape, (
+            score.shape, level_indices.shape)
 
         # Convert anchors into proposal via bbox transformations.
         roi = loc2bbox(anchor, loc)

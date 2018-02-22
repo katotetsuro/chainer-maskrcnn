@@ -16,6 +16,7 @@ import math
 
 measure_time = False
 
+
 class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
     def __init__(self,
                  faster_rcnn,
@@ -23,7 +24,8 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
                  roi_sigma=1.,
                  anchor_target_creator=AnchorTargetCreator()):
         # todo: clean up class dependencies
-        proposal_target_creator = ProposalTargetCreator(faster_rcnn.extractor.anchor_sizes)
+        proposal_target_creator = ProposalTargetCreator(
+            faster_rcnn.extractor.anchor_sizes)
         super(FPNMaskRCNNTrainChain, self).__init__(
             faster_rcnn, proposal_target_creator=proposal_target_creator)
 
@@ -50,7 +52,7 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
         fw_e_s = time.time()
         features = self.faster_rcnn.extractor(imgs)
         fw_e_e = time.time()
-        #print(f'forward(extractor):{fw_e_e-fw_e_s}')
+        # print(f'forward(extractor):{fw_e_e-fw_e_s}')
 
         # Since batch size is one, convert variables to singular form
         bbox = bboxes[0]
@@ -61,7 +63,7 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
         rpn_locs, rpn_scores, rois, roi_indices, anchor, levels = self.faster_rcnn.rpn(
             features, img_size, scale)
         fw_rpn_e = time.time()
-        #print(f'forward(rpn):{fw_rpn_e-fw_rpn_s}')
+        # print(f'forward(rpn):{fw_rpn_e-fw_rpn_s}')
 
         # Since batch size is one, convert variables to singular form
         rpn_score = rpn_scores[0]
@@ -81,7 +83,7 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
             self.loc_normalize_std,
             mask_size=28)
         fw_prop_e = time.time()
-        #print(f'forward(proposal):{fw_prop_e-fw_prop_s}')
+        # print(f'forward(proposal):{fw_prop_e-fw_prop_s}')
 
         sample_roi_index = self.xp.zeros(
             (len(sample_roi), ), dtype=np.int32)
@@ -97,15 +99,15 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
         gt_rpn_loc, gt_rpn_label = self.anchor_target_creator(
             bbox, anchor, img_size)
         rpn_loc_loss = _fast_rcnn_loc_loss(rpn_loc, gt_rpn_loc,
-                                       gt_rpn_label, self.rpn_sigma)
+                                           gt_rpn_label, self.rpn_sigma)
         rpn_cls_loss = F.softmax_cross_entropy(rpn_score, gt_rpn_label)
 
         # Losses for outputs of the head.
         fw_head_s = time.time()
         roi_cls_loc, roi_score, roi_cls_mask = self.faster_rcnn.head(
-                features, indices_and_rois, sample_levels, self.faster_rcnn.extractor.spatial_scales)
+            features, indices_and_rois, sample_levels, self.faster_rcnn.extractor.spatial_scales)
         fw_head_e = time.time()
-        #print(f'forward(head):{fw_head_e-fw_head_s}')
+        # print(f'forward(head):{fw_head_e-fw_head_s}')
 
         # Losses for outputs of the head.
         n_sample = roi_cls_loc.shape[0]
@@ -130,7 +132,7 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
         loss = rpn_loc_loss + rpn_cls_loss + roi_loc_loss + roi_cls_loss + mask_loss
 
         fw_e = time.time()
-        #print(f'forward(total):{fw_e-fw_s}')
+        # print(f'forward(total):{fw_e-fw_s}')
 
         chainer.reporter.report({
             'rpn_loc_loss': rpn_loc_loss,
@@ -142,8 +144,8 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
         }, self)
 
         #bw_s = time.time()
-        #loss.backward()
+        # loss.backward()
         #bw_e = time.time()
-        #print(f'backward(total):{bw_e-bw_s}')
+        # print(f'backward(total):{bw_e-bw_s}')
 
         return loss

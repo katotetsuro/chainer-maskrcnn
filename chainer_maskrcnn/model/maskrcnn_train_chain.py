@@ -15,6 +15,7 @@ import time
 
 measure_time = False
 
+
 class MaskRCNNTrainChain(FasterRCNNTrainChain):
     def __init__(self,
                  faster_rcnn,
@@ -58,7 +59,6 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
         else:
             raise ValueError('unknown backbone:', self.faster_rcnn)
 
-
         # Since batch size is one, convert variables to singular form
         bbox = bboxes[0]
         label = labels[0]
@@ -91,7 +91,8 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
             sample_roi_index = self.xp.zeros(
                 (len(sample_roi), ), dtype=np.int32)
 
-            proposals.append((sample_roi, sample_roi_index, 1 / self.faster_rcnn.feat_stride * s))
+            proposals.append((sample_roi, sample_roi_index,
+                              1 / self.faster_rcnn.feat_stride * s))
             rpn_outputs.append((rpn_loc, rpn_score, roi, anchor))
             gt_data.append((gt_roi_loc, gt_roi_label, gt_roi_mask))
 
@@ -106,18 +107,20 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
                 features, proposals)
         end_head = time.time()
         if measure_time:
-            print ("elapsed_time per head:{0}".format(end_head-start_head) + "[sec]")
-
+            print("elapsed_time per head:{0}".format(
+                end_head-start_head) + "[sec]")
 
         # RPN losses
-        rpn_loc_loss = chainer.Variable(self.xp.array(0, dtype=self.xp.float32))
-        rpn_cls_loss = chainer.Variable(self.xp.array(0, dtype=self.xp.float32))
+        rpn_loc_loss = chainer.Variable(
+            self.xp.array(0, dtype=self.xp.float32))
+        rpn_cls_loss = chainer.Variable(
+            self.xp.array(0, dtype=self.xp.float32))
         for (p, r) in zip(proposals, rpn_outputs):
             rpn_loc, rpn_score, _, anchor = r
             gt_rpn_loc, gt_rpn_label = self.anchor_target_creator(
                 bbox, anchor, img_size)
             rpn_loc_loss += _fast_rcnn_loc_loss(rpn_loc, gt_rpn_loc,
-                                           gt_rpn_label, self.rpn_sigma)
+                                                gt_rpn_label, self.rpn_sigma)
             rpn_cls_loss += F.softmax_cross_entropy(rpn_score, gt_rpn_label)
 
         # Losses for outputs of the head.
@@ -128,8 +131,6 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
             roi_loc = roi_cls_loc.reshape(n_sample, 4)
         else:
             roi_loc = roi_cls_loc[self.xp.arange(n_sample), gt_roi_label]
-
-
 
         gt_roi_loc = self.xp.concatenate([g[0] for g in gt_data], axis=0)
         gt_roi_label = self.xp.concatenate([g[1] for g in gt_data], axis=0)
@@ -156,7 +157,8 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
 
         end_iter = time.time()
         if measure_time:
-            print ("elapsed_time per iter:{0}".format(end_iter - start_iter) + "[sec]")
+            print("elapsed_time per iter:{0}".format(
+                end_iter - start_iter) + "[sec]")
 
         start_bw = time.time()
         loss.backward()
@@ -165,7 +167,7 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
             print('backward time:{}'.format(end_bw - start_bw))
 
         #n = 0
-        #for l in self.faster_rcnn.links():
+        # for l in self.faster_rcnn.links():
         #    for p in l.params():
         #        if hasattr(p, 'size'):
         #            n += p.size
@@ -173,6 +175,5 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
         #            print('parameter is none, ', l.name)
 
         #print('num params', n)
-
 
         return loss
