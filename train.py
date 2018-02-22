@@ -1,17 +1,15 @@
 import chainer
 from chainer.datasets import TransformDataset
-from chainer import training
 from chainer.training import extensions
-from chainer.datasets import TransformDataset
 from chainercv import transforms
 from chainerui.utils import save_args
 from chainerui.extensions import CommandsExtension
 import cv2
 import numpy as np
-from MaskRCNNTrainChain import MaskRCNNTrainChain
-from fpn_maskrcnn_train_chain import FPNMaskRCNNTrainChain
-from MaskRCNNResnet50 import MaskRCNNResnet50
-from COCODataset import COCOMaskLoader
+from chainer_maskrcnn.model.maskrcnn_train_chain import MaskRCNNTrainChain
+from chainer_maskrcnn.model.fpn_maskrcnn_train_chain import FPNMaskRCNNTrainChain
+from chainer_maskrcnn.model.maskrcnn_resnet50 import MaskRCNNResnet50
+from chainer_maskrcnn.dataset.coco_dataset import COCOMaskLoader
 
 import argparse
 from os.path import exists, isfile
@@ -43,8 +41,7 @@ def main():
     parser.add_argument('--lr', '-l', type=float, default=1e-3)
     parser.add_argument(
         '--out', '-o', default='result', help='Output directory')
-    parser.add_argument('--step_size', '-ss', type=int, default=50000)
-    parser.add_argument('--iteration', '-i', type=int, default=500000)
+    parser.add_argument('--iteration', '-i', type=int, default=200000)
     parser.add_argument('--weight', '-w', type=str, default='')
     parser.add_argument(
         '--label_file', '-f', type=str, default='data/label_coco.txt')
@@ -117,7 +114,7 @@ def main():
         updater = chainer.training.updater.StandardUpdater(
             train_iter, optimizer, device=args.gpu)
 
-    trainer = training.Trainer(updater, (args.iteration, 'iteration'),
+    trainer = chainer.training.Trainer(updater, (args.iteration, 'iteration'),
                                args.out)
 
     trainer.extend(

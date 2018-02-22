@@ -5,7 +5,7 @@ import chainer.functions as F
 from chainer.links.model.vision.resnet import ResNet50Layers, BuildingBlock, _global_average_pooling_2d
 import numpy as np
 import copy
-from roi_align_2d_yx import _roi_align_2d_yx
+from chainer_maskrcnn.functions.roi_align_2d_yx import _roi_align_2d_yx
 
 
 class LightRoIMaskHead(chainer.Chain):

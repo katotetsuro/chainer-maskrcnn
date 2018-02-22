@@ -9,12 +9,12 @@ from chainercv.links.model.faster_rcnn.region_proposal_network import \
 from chainercv.links.model.faster_rcnn.utils.loc2bbox import loc2bbox
 from chainercv.transforms.image.resize import resize
 from chainercv.utils import non_maximum_suppression
-from C4Backbone import C4Backbone
-from ResnetRoIMaskHead import ResnetRoIMaskHead
-from LightRoIMaskHead import LightRoIMaskHead
-from fpn_roi_mask_head import FPNRoIMaskHead
-from feature_pyramid_network import FeaturePyramidNetwork
-from multilevel_region_proposal_network import MultilevelRegionProposalNetwork
+from .extractor.c4_backbone import C4Backbone
+from .extractor.feature_pyramid_network import FeaturePyramidNetwork
+from .rpn.multilevel_region_proposal_network import MultilevelRegionProposalNetwork
+from .head.resnet_roi_mask_head import ResnetRoIMaskHead
+from .head.light_roi_mask_head import LightRoIMaskHead
+from .head.fpn_roi_mask_head import FPNRoIMaskHead
 import cv2
 
 
