@@ -4,7 +4,7 @@ import numpy as np
 import chainer
 import chainer.links as L
 import chainer.functions as F
-from  chainercv.links.model.faster_rcnn.region_proposal_network import _enumerate_shifted_anchor
+from chainercv.links.model.faster_rcnn.region_proposal_network import _enumerate_shifted_anchor
 
 from chainercv.links.model.faster_rcnn.utils.generate_anchor_base import \
     generate_anchor_base
@@ -29,6 +29,7 @@ def map_rois_to_fpn_levels(xp, rois, k_min=2, k_max=6):
     target_lvls = xp.floor(lvl0 + xp.log2(s / s0 + 1e-6))
     target_lvls = xp.clip(target_lvls, k_min, k_max) - k_min
     return target_lvls
+
 
 class MultilevelRegionProposalNetwork(chainer.Chain):
 
@@ -58,13 +59,15 @@ class MultilevelRegionProposalNetwork(chainer.Chain):
         .. seealso::
             :class:`~chainercv.links.model.faster_rcnn.ProposalCreator`
         """
+
     def __init__(
             self, anchor_scales, feat_strides, in_channels=256, mid_channels=256, ratios=[0.5, 1, 2],
             initialW=None,
             proposal_creator_params=dict()):
         if len(anchor_scales) != len(feat_strides):
-            raise ValueError('length of anchor_scales and feat_strides should be same!')
-        self.anchor_bases= [generate_anchor_base(
+            raise ValueError(
+                'length of anchor_scales and feat_strides should be same!')
+        self.anchor_bases = [generate_anchor_base(
             anchor_scales=[s], ratios=ratios) for s in anchor_scales]
         self.feat_strides = feat_strides
         self.proposal_layer = ProposalCreator(**proposal_creator_params)
@@ -83,7 +86,6 @@ class MultilevelRegionProposalNetwork(chainer.Chain):
                 mid_channels, n_anchor * 2, 1, 1, 0, initialW=initialW)
             self.loc = L.Convolution2D(
                 mid_channels, n_anchor * 4, 1, 1, 0, initialW=initialW)
-
 
     def __call__(self, xs, img_size, scale=1.):
         """Forward Region Proposal Network.
@@ -116,7 +118,6 @@ class MultilevelRegionProposalNetwork(chainer.Chain):
             * **anchor**: Coordinates of enumerated shifted anchors. \
                 Its shape is :math:`(H W A, 4)`.
         """
-
 
         locs = list()
         scores = list()

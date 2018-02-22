@@ -6,6 +6,8 @@ import cv2
 from chainer_maskrcnn.model.rpn.multilevel_region_proposal_network import map_rois_to_fpn_levels
 
 # GroundTruthと近いbox, label, maskだけをフィルタリングする
+
+
 class ProposalTargetCreator(object):
     def __init__(self,
                  sizes=[16],
