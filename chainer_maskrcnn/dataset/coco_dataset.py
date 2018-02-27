@@ -107,3 +107,54 @@ class COCOMaskLoader(chainer.dataset.DatasetMixin):
         # gt_masksはlistのままにしておいて、Transformでcv::resizeしたあとにnumpy arrayにするという泥臭
         return img, np.array(gt_boxes), np.array(
             gt_labels, dtype=np.int32), gt_masks
+
+
+class COCOKeypointsLoader(chainer.dataset.DatasetMixin):
+    def __init__(self,
+                 anno_dir='data/annotations',
+                 img_dir='data',
+                 split='train',
+                 data_type='2014'):
+        if split not in ['train', 'val', 'validation']:
+            raise ValueError(
+                'please pick split from \'train\', \'val\',\'validation\'')
+
+        if split == 'validation':
+            split = 'val'
+
+        ann_file = '%s/person_keypoints_%s%s.json' % (
+            anno_dir, split, data_type)
+        self.coco = COCO(ann_file)
+
+        self.img_dir = '{}/{}{}'.format(img_dir, split, data_type)
+        print('load jpg images from {}'.format(self.img_dir))
+        img_ids = self.coco.getImgIds(catIds=[1])  # person only
+        self.img_infos = list()
+        for info in img_infos:
+            file_name, img_id = info
+            anns = coco.loadAnns(coco.getAnnIds(imgIds=img_id))
+            if len(anns) > 0:
+                self.img_infos.append(info)
+
+        self.length = len(self.img_infos)
+        print('number of valid data.', self.length)
+
+    def __len__(self):
+        return self.length
+
+    def get_example(self, i):
+        if i >= self.length:
+            raise IndexError()
+
+        file_name, img_id = self.img_infos[i]
+        img = read_image(join(self.img_dir, file_name), color=True)
+        anns = self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))
+
+        keypoints = list()
+        for ann in anns:
+            kp = ann['keypoints']
+            kp = np.array(kp).reshape((-1, 3))
+            keypoints.append(kp)
+        keypoints = np.concatenate(keypoints)
+
+        return img, keypoints
