@@ -116,7 +116,7 @@ class ProposalTargetCreator(object):
                 # -1でignoreされる
                 keypoint_labels = np.zeros(17, dtype=np.int32)
                 for j, r in enumerate(kp):
-                    if r[2] == 2 and r[0]<0 or mask_size<=r[0] or r[1]<0 or mask_size<=r[1]:
+                    if r[2] == 2 and 0 <= r[0] and r[0] < mask_size and 0<=r[1] and r[1]<mask_size:
                         keypoint_labels[j] = r[0] * mask_size + r[1]
                     else:
                         keypoint_labels[j] = -1
