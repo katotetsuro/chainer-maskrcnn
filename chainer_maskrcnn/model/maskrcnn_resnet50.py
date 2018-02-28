@@ -15,6 +15,7 @@ from .rpn.multilevel_region_proposal_network import MultilevelRegionProposalNetw
 from .head.resnet_roi_mask_head import ResnetRoIMaskHead
 from .head.light_roi_mask_head import LightRoIMaskHead
 from .head.fpn_roi_mask_head import FPNRoIMaskHead
+from .head.fpn_roi_keypoint_head import FPNRoIKeypointHead
 import cv2
 
 
@@ -89,6 +90,14 @@ class MaskRCNNResnet50(FasterRCNN):
         elif head_arch == 'fpn':
             head = FPNRoIMaskHead(
                 n_fg_class + 1,
+                roi_size_box=7,
+                roi_size_mask=14,
+                loc_initialW=loc_initialW,
+                score_initialW=score_initialW,
+                mask_initialW=chainer.initializers.Normal(0.01))
+        elif head_arch == 'fpn_keypoint':
+            head = FPNRoIKeypointHead(
+                2,
                 roi_size_box=7,
                 roi_size_mask=14,
                 loc_initialW=loc_initialW,
