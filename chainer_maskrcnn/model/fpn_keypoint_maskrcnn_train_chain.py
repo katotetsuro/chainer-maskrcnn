@@ -77,7 +77,7 @@ class FPNKeypointMaskRCNNTrainChain(FasterRCNNTrainChain):
             self.loc_normalize_mean,
             self.loc_normalize_std,
             mask_size=56,
-            binary_mask=False # means keypoint
+            binary_mask=False  # means keypoint
         )
 
         sample_roi_index = self.xp.zeros(
@@ -114,7 +114,7 @@ class FPNKeypointMaskRCNNTrainChain(FasterRCNNTrainChain):
         # 出力を (n_proposals, 17, mask_size, mask_size) から (n_positive_sample *17, mask_size*mask_size) にreshapeして、softmax crossentropyを取る
         num_positives = gt_roi_mask.shape[0]
         roi_mask = roi_cls_mask[:num_positives].reshape((num_positives*17, -1))
-        gt_roi_mask = gt_roi_mask.reshape((-1,)) 
+        gt_roi_mask = gt_roi_mask.reshape((-1,))
         mask_loss = F.softmax_cross_entropy(roi_mask, gt_roi_mask)
 
         loss = rpn_loc_loss + rpn_cls_loss + roi_loc_loss + roi_cls_loss + mask_loss

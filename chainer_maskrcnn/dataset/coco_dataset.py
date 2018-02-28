@@ -108,6 +108,7 @@ class COCOMaskLoader(chainer.dataset.DatasetMixin):
         return img, np.array(gt_boxes), np.array(
             gt_labels, dtype=np.int32), gt_masks
 
+
 class COCOKeypointsLoader(chainer.dataset.DatasetMixin):
     def __init__(self,
                  anno_dir='data/annotations',
@@ -121,14 +122,15 @@ class COCOKeypointsLoader(chainer.dataset.DatasetMixin):
         if split == 'validation':
             split = 'val'
 
-        ann_file = '%s/person_keypoints_%s%s.json' % (anno_dir, split, data_type)
+        ann_file = '%s/person_keypoints_%s%s.json' % (
+            anno_dir, split, data_type)
         self.coco = COCO(ann_file)
 
         self.img_dir = '{}/{}{}'.format(img_dir, split, data_type)
         print('load jpg images from {}'.format(self.img_dir))
-        img_ids = self.coco.getImgIds(catIds=[1]) # person only
+        img_ids = self.coco.getImgIds(catIds=[1])  # person only
         all_img_infos = [(i['file_name'], i['id'])
-                          for i in self.coco.loadImgs(img_ids)]
+                         for i in self.coco.loadImgs(img_ids)]
         # keypointsが空のデータもあるので、それは間引く
         self.img_infos = list()
         for info in all_img_infos:
@@ -146,18 +148,18 @@ class COCOKeypointsLoader(chainer.dataset.DatasetMixin):
     def get_example(self, i):
         if i >= self.length:
             raise IndexError()
-            
+
         file_name, img_id = self.img_infos[i]
         img = read_image(join(self.img_dir, file_name), color=True)
         anns = self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))
-        
+
         keypoints = list()
         gt_boxes = list()
         for ann in anns:
             kp = ann['keypoints']
             kp = np.array(kp).reshape((-1, 3))
             keypoints.append(kp)
-            
+
             x, y, w, h = [int(j) for j in ann['bbox']]
             gt_boxes.append(np.array([y, x, y + h, x + w], dtype=np.float32))
 
