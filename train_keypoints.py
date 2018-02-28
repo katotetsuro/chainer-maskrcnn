@@ -30,11 +30,11 @@ class Transform():
         bbox = transforms.resize_bbox(bbox, (H, W), (o_H, o_W))
         # shape of keypoints is (N, 17, 3), N is number of bbox, 17 is number of keypoints, 3 is (x, y, v)
         # v=0: unlabeled, v=1, labeled but invisible, v=2 labeled and visible
+        keypoints = keypoints.astype(np.float32)
         kp = keypoints[:, :, [1, 0]]
-        kp[:, :] = transforms.resize_keypoint(kp, (H, W), (o_H, o_W))
-        keypoints[:, :, :2] = kp
+        kp = np.concatenate([kp * scale, keypoints[:, :, 2, None]], axis=2)
 
-        return img, bbox, keypoints, scale
+        return img, bbox, kp, scale
 
 
 def main():
@@ -68,9 +68,8 @@ def main():
             print('MultiprocessParallelUpdater is not available')
             args.multi_gpu = 0
 
-    # 17個の関節の(x,y)がある
     faster_rcnn = MaskRCNNResnet50(
-        n_fg_class=34, backbone=args.backbone, head_arch=args.head_arch)
+        n_fg_class=1, backbone=args.backbone, head_arch=args.head_arch)
     faster_rcnn.use_preset('evaluate')
     #model = MaskRCNNTrainChain(faster_rcnn)
     model = FPNKeypointMaskRCNNTrainChain(faster_rcnn)
