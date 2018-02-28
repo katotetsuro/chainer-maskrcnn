@@ -30,8 +30,8 @@ class Transform():
         bbox = transforms.resize_bbox(bbox, (H, W), (o_H, o_W))
         # shape of keypoints is (N, 17, 3), N is number of bbox, 17 is number of keypoints, 3 is (x, y, v)
         # v=0: unlabeled, v=1, labeled but invisible, v=2 labeled and visible
-        kp = keypoints[:, :, [1,0]]
-        kp[:, :] = transforms.resize_keypoint(kp, (H,W), (o_H, o_W))
+        kp = keypoints[:, :, [1, 0]]
+        kp[:, :] = transforms.resize_keypoint(kp, (H, W), (o_H, o_W))
         keypoints[:, :, :2] = kp
 
         return img, bbox, keypoints, scale
