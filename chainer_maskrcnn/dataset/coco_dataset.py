@@ -161,6 +161,8 @@ class COCOKeypointsLoader(chainer.dataset.DatasetMixin):
             keypoints.append(kp)
 
             x, y, w, h = [int(j) for j in ann['bbox']]
+            h = max(1.0, h)
+            w = max(1.0, w)
             gt_boxes.append(np.array([y, x, y + h, x + w], dtype=np.float32))
 
         keypoints = np.array(keypoints).reshape((-1, 17, 3))
