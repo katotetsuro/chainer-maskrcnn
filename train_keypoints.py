@@ -111,7 +111,7 @@ def main():
             train_iters, optimizer, device=range(8))
 
     else:
-        train_iter = chainer.iterators.SerialIterator(
+        train_iter = chainer.iterators.MultiprocessIterator(
             train_data, batch_size=args.batch_size, repeat=True, shuffle=False)
         updater = chainer.training.updater.StandardUpdater(
             train_iter, optimizer, device=args.gpu)
@@ -125,7 +125,7 @@ def main():
         trigger=(20000, 'iteration'))
 
     trainer.extend(
-        extensions.ExponentialShift('lr', 0.1), trigger=(2, 'epoch'))
+        extensions.ExponentialShift('lr', 0.1), trigger=(1, 'epoch'))
 
     log_interval = 100, 'iteration'
     print_interval = 100, 'iteration'
