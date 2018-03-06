@@ -7,7 +7,6 @@ from pycocotools.coco import COCO
 from PIL import Image
 from random import shuffle
 
-
 class COCOMaskLoader(chainer.dataset.DatasetMixin):
     def __init__(self,
                  anno_dir='data/annotations',
@@ -22,11 +21,11 @@ class COCOMaskLoader(chainer.dataset.DatasetMixin):
         if split == 'validation':
             split = 'val'
 
-        ann_file = '%s/instances_%s%s.json' % (anno_dir, split, data_type)
+        ann_file = f'{anno_dir}/instances_{split}{data_type}.json'
         self.coco = COCO(ann_file)
 
-        self.img_dir = '{}/{}{}'.format(img_dir, split, data_type)
-        print('load jpg images from {}'.format(self.img_dir))
+        self.img_dir = f'{img_dir}/{split}{data_type}'
+        print(f'load jpg images from {self.img_dir}')
         target_cats = [] if category_filter is None else category_filter
         self.cat_ids = self.coco.getCatIds(catNms=target_cats)
         # cat_idsの中のどれかが含まれる画像、を探したい（or検索）
@@ -35,16 +34,13 @@ class COCOMaskLoader(chainer.dataset.DatasetMixin):
         for cat_id in self.cat_ids:
             img_ids |= set(self.coco.getImgIds(catIds=[cat_id]))
 
-        print('before filter: {}'.format(len(img_ids)))
-        #        img_ids = list(filter(lambda x: self._contain_large_enough_annotation(x), img_ids))
+        print(f'before filter: {len(img_ids)}')
         img_ids = list(
             filter(lambda x: self._contain_large_annotation_only(x), img_ids))
-        print('after filter: {}'.format(len(img_ids)))
+        print(f'after filter: {len(img_ids)}'
 
-#        shuffle(img_ids)
         self.img_infos = [(i['file_name'], i['id'])
                           for i in self.coco.loadImgs(img_ids)]
-        # len(self.imgs)を呼ぶたびにメモリ使用量が増えるという罠?
         self.length = len(self.img_infos)
 
     def __len__(self):
@@ -75,6 +71,8 @@ class COCOMaskLoader(chainer.dataset.DatasetMixin):
         return True
 
     def get_example(self, i):
+        if i >= self.length:
+            raise IndexError('index is out of bounds.')
         file_name, img_id = self.img_infos[i]
         img = read_image(join(self.img_dir, file_name), color=True)
         assert img.shape[0] == 3
@@ -84,12 +82,6 @@ class COCOMaskLoader(chainer.dataset.DatasetMixin):
         gt_labels = []
         for ann in anns:
             x, y, w, h = [int(j) for j in ann['bbox']]
-            if w <= 10:
-                #                print('w<=10が検出されました {} {} このアノテーションは無視します'.format(file_name, w))
-                continue
-            if h <= 10:
-                #                print('h<=10が検出されました {} {} このアノテーションは無視します'.format(file_name, h))
-                continue
 
             # これめっちゃ罠で、category_idが連続してないんだよなー
             if ann['category_id'] in self.cat_ids:
@@ -122,11 +114,10 @@ class COCOKeypointsLoader(chainer.dataset.DatasetMixin):
         if split == 'validation':
             split = 'val'
 
-        ann_file = '%s/person_keypoints_%s%s.json' % (
-            anno_dir, split, data_type)
+        ann_file = f'{anno_dir}/person_keypoints_{split}{data_type}.json'
         self.coco = COCO(ann_file)
 
-        self.img_dir = '{}/{}{}'.format(img_dir, split, data_type)
+        self.img_dir = f'{img_dir}/{split}{data_type}'
         print('load jpg images from {}'.format(self.img_dir))
         img_ids = self.coco.getImgIds(catIds=[1])  # person only
         all_img_infos = [(i['file_name'], i['id'])

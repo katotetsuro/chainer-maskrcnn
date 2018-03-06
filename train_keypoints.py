@@ -13,7 +13,7 @@ from chainer_maskrcnn.dataset.coco_dataset import COCOKeypointsLoader
 import argparse
 from os.path import exists, isfile
 import time
-import pickle
+import _pickle as pickle
 
 
 class Transform():

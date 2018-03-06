@@ -14,8 +14,7 @@ from chainer_maskrcnn.dataset.coco_dataset import COCOMaskLoader
 import argparse
 from os.path import exists, isfile
 import time
-import pickle
-
+import _pickle as pickle
 
 class Transform(object):
     def __init__(self, faster_rcnn):
@@ -23,7 +22,6 @@ class Transform(object):
 
     def __call__(self, in_data):
         img, bbox, label, label_img = in_data
-        #        scale = 1.0
         _, H, W = img.shape
         img = self.faster_rcnn.prepare(img)
         _, o_H, o_W = img.shape
@@ -33,7 +31,7 @@ class Transform(object):
             label_img[i] = cv2.resize(
                 im, (o_W, o_H), interpolation=cv2.INTER_NEAREST)
 
-        return np.array(img), bbox, label, label_img, scale
+        return img, bbox, label, label_img, scale
 
 
 def main():
