@@ -1,7 +1,5 @@
 import chainer
 import chainer.functions as F
-from chainer import cuda
-from chainer.cuda import to_cpu
 from chainercv.links.model.faster_rcnn.utils.anchor_target_creator import\
     AnchorTargetCreator
 from chainercv.links.model.faster_rcnn.faster_rcnn_train_chain import FasterRCNNTrainChain, _smooth_l1_loss, _fast_rcnn_loc_loss
@@ -20,26 +18,26 @@ measure_time = False
 class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
     def __init__(self,
                  faster_rcnn,
+                 mask_loss_fun,
+                 binary_mask=True,
                  rpn_sigma=3.,
                  roi_sigma=1.,
                  anchor_target_creator=AnchorTargetCreator()):
         # todo: clean up class dependencies
         proposal_target_creator = ProposalTargetCreator(
             faster_rcnn.extractor.anchor_sizes)
-        super(FPNMaskRCNNTrainChain, self).__init__(
+        super().__init__(
             faster_rcnn, proposal_target_creator=proposal_target_creator)
+        self.mask_loss_fun = mask_loss_fun
+        self.binary_mask = binary_mask
 
     def __call__(self, imgs, bboxes, labels, masks, scale):
-        if isinstance(bboxes, chainer.Variable):
-            bboxes = bboxes.data
-        if isinstance(labels, chainer.Variable):
-            labels = labels.data
-        if isinstance(scale, chainer.Variable):
-            scale = scale.data
-        if isinstance(masks, chainer.Variable):
-            masks = masks.data
-
-        scale = np.asscalar(cuda.to_cpu(scale))
+        def strip(x): return x.data if isinstance(x, chainer.Variable) else x
+        bboxes = strip(bboxes)
+        labels = strip(labels)
+        scale = strip(scale)
+        masks = strip(masks)
+        scale = np.asscalar(chainer.cuda.to_cpu(scale))
         n = bboxes.shape[0]
         if n != 1:
             raise ValueError(
@@ -73,7 +71,8 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
             levels,
             self.loc_normalize_mean,
             self.loc_normalize_std,
-            mask_size=self.faster_rcnn.head.mask_size)
+            mask_size=self.faster_rcnn.head.mask_size,
+            binary_mask=self.binary_mask)
 
         sample_roi_index = self.xp.zeros(
             (len(sample_roi), ), dtype=np.int32)
@@ -106,12 +105,8 @@ class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
                                            self.roi_sigma)
         roi_cls_loss = F.softmax_cross_entropy(roi_score, gt_roi_label)
 
-        # mask
-        # https://engineer.dena.jp/2017/12/chainercvmask-r-cnn.html
-        roi_mask = roi_cls_mask[self.xp.arange(n_sample), gt_roi_label - 1]
-        mask_loss = F.sigmoid_cross_entropy(roi_mask[:gt_roi_mask.shape[0]],
-                                            gt_roi_mask)
-
+        mask_loss = self.mask_loss_fun(
+            roi_cls_mask, gt_roi_mask, self.xp, gt_roi_label)
         loss = rpn_loc_loss + rpn_cls_loss + roi_loc_loss + roi_cls_loss + mask_loss
 
         chainer.reporter.report({

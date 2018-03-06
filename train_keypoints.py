@@ -6,7 +6,7 @@ from chainerui.utils import save_args
 from chainerui.extensions import CommandsExtension
 import cv2
 import numpy as np
-from chainer_maskrcnn.model.fpn_keypoint_maskrcnn_train_chain import FPNKeypointMaskRCNNTrainChain
+from chainer_maskrcnn.model.fpn_maskrcnn_train_chain import FPNMaskRCNNTrainChain
 from chainer_maskrcnn.model.keypoint_maskrcnn_resnet50 import MaskRCNNResnet50
 from chainer_maskrcnn.dataset.coco_dataset import COCOKeypointsLoader
 
@@ -14,6 +14,15 @@ import argparse
 from os.path import exists, isfile
 import time
 import _pickle as pickle
+
+
+def calc_mask_loss(roi_cls_mask, gt_roi_mask, xp, gt_roi_label):
+    # 出力を (n_proposals, 17, mask_size, mask_size) から (n_positive_sample *17, mask_size*mask_size) にreshapeして、softmax crossentropyを取る
+    num_positives = gt_roi_mask.shape[0]
+    roi_mask = roi_cls_mask[:num_positives].reshape(
+        (num_positives * 17, -1))
+    gt_roi_mask = gt_roi_mask.reshape((-1,))
+    return chainer.functions.softmax_cross_entropy(roi_mask, gt_roi_mask)
 
 
 class Transform():
@@ -28,13 +37,14 @@ class Transform():
         scale = o_H / H
 
         bbox = transforms.resize_bbox(bbox, (H, W), (o_H, o_W))
+        label = np.zeros(bbox.shape[0], dtype=np.int32)
         # shape of keypoints is (N, 17, 3), N is number of bbox, 17 is number of keypoints, 3 is (x, y, v)
         # v=0: unlabeled, v=1, labeled but invisible, v=2 labeled and visible
         keypoints = keypoints.astype(np.float32)
         kp = keypoints[:, :, [1, 0]]
         kp = np.concatenate([kp * scale, keypoints[:, :, 2, None]], axis=2)
 
-        return img, bbox, kp, scale
+        return img, bbox, label, kp, scale
 
 
 def main():
@@ -71,8 +81,8 @@ def main():
     faster_rcnn = MaskRCNNResnet50(
         n_fg_class=1, backbone=args.backbone, head_arch=args.head_arch)
     faster_rcnn.use_preset('evaluate')
-    #model = MaskRCNNTrainChain(faster_rcnn)
-    model = FPNKeypointMaskRCNNTrainChain(faster_rcnn)
+    model = FPNMaskRCNNTrainChain(
+        faster_rcnn, mask_loss_fun=calc_mask_loss, binary_mask=False)
     if exists(args.weight):
         chainer.serializers.load_npz(
             args.weight, model.faster_rcnn, strict=False)

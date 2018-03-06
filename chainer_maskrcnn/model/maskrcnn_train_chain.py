@@ -1,7 +1,5 @@
 import chainer
 import chainer.functions as F
-from chainer import cuda
-from chainer.cuda import to_cpu
 from chainercv.links.model.faster_rcnn.utils.anchor_target_creator import\
     AnchorTargetCreator
 from chainercv.links.model.faster_rcnn.faster_rcnn_train_chain import FasterRCNNTrainChain, _smooth_l1_loss, _fast_rcnn_loc_loss
@@ -11,9 +9,6 @@ from .maskrcnn_resnet50 import MaskRCNNResnet50
 from chainer_maskrcnn.utils.proposal_target_creator import ProposalTargetCreator
 from .extractor.feature_pyramid_network import FeaturePyramidNetwork
 from .extractor.c4_backbone import C4Backbone
-import time
-
-measure_time = False
 
 
 class MaskRCNNTrainChain(FasterRCNNTrainChain):
@@ -27,16 +22,12 @@ class MaskRCNNTrainChain(FasterRCNNTrainChain):
             faster_rcnn, proposal_target_creator=proposal_target_creator)
 
     def __call__(self, imgs, bboxes, labels, masks, scale):
-        if isinstance(bboxes, chainer.Variable):
-            bboxes = bboxes.data
-        if isinstance(labels, chainer.Variable):
-            labels = labels.data
-        if isinstance(scale, chainer.Variable):
-            scale = scale.data
-        if isinstance(masks, chainer.Variable):
-            masks = masks.data
+        def strip(x): return x.data if isinstance(x, chainer.Variable) else x
+        bboxes = strip(bboxes)
+        labels = strip(labels)
+        masks = strip(masks)
 
-        scale = np.asscalar(cuda.to_cpu(scale))
+        scale = np.asscalar(chainer.cuda.to_cpu(scale))
         n = bboxes.shape[0]
         if n != 1:
             raise ValueError(

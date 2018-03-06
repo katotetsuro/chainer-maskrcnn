@@ -6,7 +6,6 @@ from chainerui.utils import save_args
 from chainerui.extensions import CommandsExtension
 import cv2
 import numpy as np
-from chainer_maskrcnn.model.maskrcnn_train_chain import MaskRCNNTrainChain
 from chainer_maskrcnn.model.fpn_maskrcnn_train_chain import FPNMaskRCNNTrainChain
 from chainer_maskrcnn.model.maskrcnn_resnet50 import MaskRCNNResnet50
 from chainer_maskrcnn.dataset.coco_dataset import COCOMaskLoader
@@ -33,6 +32,16 @@ class Transform(object):
                 im, (o_W, o_H), interpolation=cv2.INTER_NEAREST)
 
         return img, bbox, label, label_img, scale
+
+# mask
+# https://engineer.dena.jp/2017/12/chainercvmask-r-cnn.html
+
+
+def calc_mask_loss(roi_cls_mask, gt_roi_mask, xp, gt_roi_label):
+    roi_mask = roi_cls_mask[xp.arange(
+        roi_cls_mask.shape[0]), gt_roi_label - 1]
+    return chainer.functions.sigmoid_cross_entropy(roi_mask[:gt_roi_mask.shape[0]],
+                                                   gt_roi_mask)
 
 
 def main():
@@ -72,8 +81,7 @@ def main():
     faster_rcnn = MaskRCNNResnet50(
         n_fg_class=len(labels), backbone=args.backbone, head_arch=args.head_arch)
     faster_rcnn.use_preset('evaluate')
-    #model = MaskRCNNTrainChain(faster_rcnn)
-    model = FPNMaskRCNNTrainChain(faster_rcnn)
+    model = FPNMaskRCNNTrainChain(faster_rcnn, mask_loss_fun=calc_mask_loss)
     if exists(args.weight):
         chainer.serializers.load_npz(
             args.weight, model.faster_rcnn, strict=False)
