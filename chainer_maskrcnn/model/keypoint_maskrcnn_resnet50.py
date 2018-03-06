@@ -15,6 +15,7 @@ from .rpn.multilevel_region_proposal_network import MultilevelRegionProposalNetw
 from .head.resnet_roi_mask_head import ResnetRoIMaskHead
 from .head.light_roi_mask_head import LightRoIMaskHead
 from .head.fpn_roi_mask_head import FPNRoIMaskHead
+from .head.fpn_roi_keypoint_head import FPNRoIKeypointHead
 import cv2
 
 
@@ -89,6 +90,14 @@ class MaskRCNNResnet50(FasterRCNN):
         elif head_arch == 'fpn':
             head = FPNRoIMaskHead(
                 n_fg_class + 1,
+                roi_size_box=7,
+                roi_size_mask=14,
+                loc_initialW=loc_initialW,
+                score_initialW=score_initialW,
+                mask_initialW=chainer.initializers.Normal(0.01))
+        elif head_arch == 'fpn_keypoint':
+            head = FPNRoIKeypointHead(
+                2,
                 roi_size_box=7,
                 roi_size_mask=14,
                 loc_initialW=loc_initialW,
@@ -187,7 +196,7 @@ class MaskRCNNResnet50(FasterRCNN):
                                                              raw_roi, raw_levels)
 
             # predict only mask based on detected roi
-            mask_per_image = list()
+            mask_per_image = []
             if len(label) > 0:
                 with chainer.using_config('train', False), \
                         chainer.function.no_backprop_mode():
@@ -200,19 +209,11 @@ class MaskRCNNResnet50(FasterRCNN):
 
                     mask = self.head.predict_mask(
                         levels, indices_and_rois, self.extractor.spatial_scales)
-                mask = F.sigmoid(mask).data
+                # soft max over mask image space
+#                mask = F.softmax(mask.reshape((mask.shape[0], 17, -1))).data
+                mask = mask.reshape((mask.shape[0], 17, -1)).data
                 mask = cuda.to_cpu(mask)
-                mask = mask[np.arange(mask.shape[0]), label]
-
-                # maskをresizeする
-                for i, (b, m) in enumerate(zip(bbox, mask)):
-                    w = b[3] - b[1]
-                    h = b[2] - b[0]
-                    m = cv2.resize(m, (w, h)) * 255
-                    m = m.astype(np.uint8)
-                    _, m = cv2.threshold(m, 127, 255, cv2.THRESH_BINARY)
-
-                    mask_per_image.append(m)
+                mask_per_image.append(mask)
             bboxes.append(bbox)
             labels.append(label)
             scores.append(score)
@@ -239,15 +240,15 @@ class MaskRCNNResnet50(FasterRCNN):
         return img
 
     def _suppress(self, raw_cls_bbox, raw_prob, raw_roi, raw_level):
-        bbox = list()
-        label = list()
-        score = list()
-        roi = list()
-        level = list()
+        bbox = []
+        label = []
+        score = []
+        roi = []
+        level = []
         # skip cls_id = 0 because it is the background class
         # -> maskは0から始まるから、l-1を使う
         # -> あーしまったTrainChainで最後のクラスToothBlushは範囲外になっておるわ・・
-        for l in range(1, self.n_class - 1):
+        for l in range(1, self.n_class):
             cls_bbox_l = raw_cls_bbox.reshape((-1, self.n_class, 4))[:, l, :]
             prob_l = raw_prob[:, l]
             mask = prob_l > self.score_thresh
