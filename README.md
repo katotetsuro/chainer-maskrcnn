@@ -7,7 +7,7 @@ Light-Head R-CNN: http://arxiv.org/abs/1711.07264
 
 # current status
 
-using LightHead architecture
+## using LightHead architecture
 
 Good examples :)
 
@@ -17,15 +17,26 @@ Good examples :)
 many results are available here.
 https://drive.google.com/drive/u/1/folders/1BwYDFdGpaRNWTU2HyV18VuDvwqndv0e_
 
+## Feature Pyramid network
+
+mask accuracy looks better than above.
+
+![](imgs/fpn_008.jpg)
+
+## keypoint
+
+!! I just trained 20000 iter, so result is bad.
+
+![](imgs/key.jpg)
+
 # todo, issues
 
-- backbone architectureは、論文の中で言うC4(Resnet50ベース)しか実装していません
-- head architectureとして、試しにLight Head RCNNで提案されているものを実装してみました
 - 学習を進めるとどんどんメモリ使用量が増えていく問題があるので、現在調査中です。
 メモリ64GBのp2.xlargeインスタンスで学習したところ、データを1周したあとで増加は止まったので、そうゆう挙動で正しいのかもしれません。
 ただ、メモリ16GBのマシンだと動かないのは個人的に困っているので、調査を続けます。
 - add prediction notebook
-- keypoint detection
+- use COCO 2017
+- currently, only FPN backbone will work(I have backward compatibility broke down)
 
 # setup
 
@@ -54,4 +65,4 @@ MSCOCOをダウンロードしてdata以下に展開
 
 [chainercvを用いたMask R-CNNの実装](https://engineer.dena.jp/2017/12/chainercvmask-r-cnn.html)
 
-MaskRCNNResnet50.py, ProposalTargetCreator.pyの実装で思いっきり参考にさせていただいています。
+MaskRCNNResnet50, ProposalTargetCreatorの実装で思いっきり参考にさせていただいています。
