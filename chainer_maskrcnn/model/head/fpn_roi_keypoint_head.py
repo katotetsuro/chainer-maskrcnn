@@ -29,7 +29,8 @@ class FPNRoIKeypointHead(chainer.Chain):
             # mask prediction path
             self.mask_convs = chainer.ChainList()
             for i in range(8):
-                self.mask_convs.add_link(L.Convolution2D(None, 256, ksize=3, pad=1))
+                self.mask_convs.add_link(
+                    L.Convolution2D(None, 256, ksize=3, pad=1))
             #self.mask1 = L.Convolution2D(None, 256, ksize=3, pad=1)
             #self.mask2 = L.Convolution2D(None, 256, ksize=3, pad=1)
             #self.mask3 = L.Convolution2D(None, 256, ksize=3, pad=1)

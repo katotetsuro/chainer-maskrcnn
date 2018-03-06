@@ -128,8 +128,6 @@ def main():
         extensions.ExponentialShift('lr', 0.1), trigger=(1, 'epoch'))
 
     log_interval = 100, 'iteration'
-    print_interval = 100, 'iteration'
-
     trainer.extend(
         chainer.training.extensions.observe_lr(), trigger=log_interval)
     trainer.extend(extensions.LogReport(trigger=log_interval))
@@ -146,7 +144,7 @@ def main():
             'main/rpn_loc_loss',
             'main/rpn_cls_loss',
         ]),
-        trigger=print_interval)
+        trigger=(100, 'iteration'))
     trainer.extend(extensions.ProgressBar(update_interval=200))
     trainer.extend(extensions.dump_graph('main/loss'))
 

@@ -7,6 +7,7 @@ from pycocotools.coco import COCO
 from PIL import Image
 from random import shuffle
 
+
 class COCOMaskLoader(chainer.dataset.DatasetMixin):
     def __init__(self,
                  anno_dir='data/annotations',
@@ -39,18 +40,18 @@ class COCOMaskLoader(chainer.dataset.DatasetMixin):
             filter(lambda x: self._contain_large_annotation_only(x), img_ids))
         print(f'after filter: {len(img_ids)}'
 
-        self.img_infos = [(i['file_name'], i['id'])
+        self.img_infos=[(i['file_name'], i['id'])
                           for i in self.coco.loadImgs(img_ids)]
-        self.length = len(self.img_infos)
+        self.length=len(self.img_infos)
 
     def __len__(self):
         return self.length
 
     # 少なくとも１つ十分大きいものがあればOKとするフィルタ
     def _contain_large_enough_annotation(self, img_id, min_w=10, min_h=10):
-        anns = self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))
+        anns=self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))
         for ann in anns:
-            x, y, w, h = [int(j) for j in ann['bbox']]
+            x, y, w, h=[int(j) for j in ann['bbox']]
             if w <= min_w or h <= min_h:
                 continue
 
@@ -61,9 +62,9 @@ class COCOMaskLoader(chainer.dataset.DatasetMixin):
 
     # 画像内の全てのアノテーションが大きくないとダメだぞというフィルタ
     def _contain_large_annotation_only(self, img_id, min_w=10, min_h=10):
-        anns = self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))
+        anns=self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))
         for ann in anns:
-            x, y, w, h = [int(j) for j in ann['bbox']]
+            x, y, w, h=[int(j) for j in ann['bbox']]
             if ann['category_id'] in self.cat_ids and (w <= min_w
                                                        or h <= min_h):
                 return False
@@ -73,19 +74,19 @@ class COCOMaskLoader(chainer.dataset.DatasetMixin):
     def get_example(self, i):
         if i >= self.length:
             raise IndexError('index is out of bounds.')
-        file_name, img_id = self.img_infos[i]
-        img = read_image(join(self.img_dir, file_name), color=True)
+        file_name, img_id=self.img_infos[i]
+        img=read_image(join(self.img_dir, file_name), color=True)
         assert img.shape[0] == 3
-        anns = self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))
-        gt_boxes = []
-        gt_masks = []
-        gt_labels = []
+        anns=self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))
+        gt_boxes=[]
+        gt_masks=[]
+        gt_labels=[]
         for ann in anns:
-            x, y, w, h = [int(j) for j in ann['bbox']]
+            x, y, w, h=[int(j) for j in ann['bbox']]
 
             # これめっちゃ罠で、category_idが連続してないんだよなー
             if ann['category_id'] in self.cat_ids:
-                continuous_cat_id = self.cat_ids.index(ann['category_id'])
+                continuous_cat_id=self.cat_ids.index(ann['category_id'])
                 gt_boxes.append(
                     np.array([y, x, y + h, x + w], dtype=np.float32))
                 gt_masks.append(self.coco.annToMask(ann))
@@ -112,25 +113,25 @@ class COCOKeypointsLoader(chainer.dataset.DatasetMixin):
                 'please pick split from \'train\', \'val\',\'validation\'')
 
         if split == 'validation':
-            split = 'val'
+            split='val'
 
-        ann_file = f'{anno_dir}/person_keypoints_{split}{data_type}.json'
-        self.coco = COCO(ann_file)
+        ann_file=f'{anno_dir}/person_keypoints_{split}{data_type}.json'
+        self.coco=COCO(ann_file)
 
-        self.img_dir = f'{img_dir}/{split}{data_type}'
+        self.img_dir=f'{img_dir}/{split}{data_type}'
         print('load jpg images from {}'.format(self.img_dir))
-        img_ids = self.coco.getImgIds(catIds=[1])  # person only
-        all_img_infos = [(i['file_name'], i['id'])
+        img_ids=self.coco.getImgIds(catIds=[1])  # person only
+        all_img_infos=[(i['file_name'], i['id'])
                          for i in self.coco.loadImgs(img_ids)]
         # keypointsが空のデータもあるので、それは間引く
-        self.img_infos = list()
+        self.img_infos=list()
         for info in all_img_infos:
-            file_name, img_id = info
-            anns = self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))
+            file_name, img_id=info
+            anns=self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))
             if len(anns) > 0:
                 self.img_infos.append(info)
 
-        self.length = len(self.img_infos)
+        self.length=len(self.img_infos)
         print('number of valid data.', self.length)
 
     def __len__(self):
@@ -140,23 +141,23 @@ class COCOKeypointsLoader(chainer.dataset.DatasetMixin):
         if i >= self.length:
             raise IndexError()
 
-        file_name, img_id = self.img_infos[i]
-        img = read_image(join(self.img_dir, file_name), color=True)
-        anns = self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))
+        file_name, img_id=self.img_infos[i]
+        img=read_image(join(self.img_dir, file_name), color=True)
+        anns=self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))
 
-        keypoints = list()
-        gt_boxes = list()
+        keypoints=list()
+        gt_boxes=list()
         for ann in anns:
-            kp = ann['keypoints']
-            kp = np.array(kp).reshape((-1, 3))
+            kp=ann['keypoints']
+            kp=np.array(kp).reshape((-1, 3))
             keypoints.append(kp)
 
-            x, y, w, h = [int(j) for j in ann['bbox']]
-            h = max(1.0, h)
-            w = max(1.0, w)
+            x, y, w, h=[int(j) for j in ann['bbox']]
+            h=max(1.0, h)
+            w=max(1.0, w)
             gt_boxes.append(np.array([y, x, y + h, x + w], dtype=np.float32))
 
-        keypoints = np.array(keypoints).reshape((-1, 17, 3))
-        gt_boxes = np.array(gt_boxes).reshape((-1, 4))
+        keypoints=np.array(keypoints).reshape((-1, 17, 3))
+        gt_boxes=np.array(gt_boxes).reshape((-1, 4))
 
         return img, gt_boxes, keypoints
