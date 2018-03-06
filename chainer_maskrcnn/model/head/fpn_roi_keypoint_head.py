@@ -8,6 +8,8 @@ from chainer_maskrcnn.functions.roi_align_2d_yx import _roi_align_2d_yx
 
 
 class FPNRoIKeypointHead(chainer.Chain):
+    mask_size = 56
+
     def __init__(self,
                  n_class,
                  roi_size_box,
@@ -86,7 +88,7 @@ class FPNRoIKeypointHead(chainer.Chain):
             #mask = F.relu(self.mask4(mask))
             mask = self.conv2(self.deconv1(mask))
             *_, h, w = mask.shape
-            mask = F.resize_images(mask, output_shape=(2*h, 2*w))
+            mask = F.resize_images(mask, output_shape=(2 * h, 2 * w))
             return roi_cls_locs, roi_scores, mask
         else:
             # cache
@@ -107,6 +109,6 @@ class FPNRoIKeypointHead(chainer.Chain):
         #mask = F.relu(self.mask4(mask))
         mask = self.conv2(self.deconv1(mask))
         *_, h, w = mask.shape
-        mask = F.resize_images(mask, output_shape=(2*h, 2*w))
+        mask = F.resize_images(mask, output_shape=(2 * h, 2 * w))
 
         return mask

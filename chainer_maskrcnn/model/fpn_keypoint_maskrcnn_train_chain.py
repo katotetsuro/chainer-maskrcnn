@@ -46,11 +46,7 @@ class FPNKeypointMaskRCNNTrainChain(FasterRCNNTrainChain):
         _, _, H, W = imgs.shape
         img_size = (H, W)
 
-        fw_s = time.time()
-        fw_e_s = time.time()
         features = self.faster_rcnn.extractor(imgs)
-        fw_e_e = time.time()
-        # print(f'forward(extractor):{fw_e_e-fw_e_s}')
 
         # Since batch size is one, convert variables to singular form
         bbox = bboxes[0]
@@ -76,7 +72,7 @@ class FPNKeypointMaskRCNNTrainChain(FasterRCNNTrainChain):
             levels,
             self.loc_normalize_mean,
             self.loc_normalize_std,
-            mask_size=56,
+            mask_size=self.faster_rcnn.head.mask_size,
             binary_mask=False  # means keypoint
         )
 
@@ -113,7 +109,8 @@ class FPNKeypointMaskRCNNTrainChain(FasterRCNNTrainChain):
 
         # 出力を (n_proposals, 17, mask_size, mask_size) から (n_positive_sample *17, mask_size*mask_size) にreshapeして、softmax crossentropyを取る
         num_positives = gt_roi_mask.shape[0]
-        roi_mask = roi_cls_mask[:num_positives].reshape((num_positives*17, -1))
+        roi_mask = roi_cls_mask[:num_positives].reshape(
+            (num_positives * 17, -1))
         gt_roi_mask = gt_roi_mask.reshape((-1,))
         mask_loss = F.softmax_cross_entropy(roi_mask, gt_roi_mask)
 
@@ -130,10 +127,5 @@ class FPNKeypointMaskRCNNTrainChain(FasterRCNNTrainChain):
             'mask_loss': mask_loss,
             'loss': loss
         }, self)
-
-        #bw_s = time.time()
-        # loss.backward()
-        #bw_e = time.time()
-        # print(f'backward(total):{bw_e-bw_s}')
 
         return loss

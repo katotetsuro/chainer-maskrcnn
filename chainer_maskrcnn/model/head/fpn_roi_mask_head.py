@@ -8,6 +8,8 @@ from chainer_maskrcnn.functions.roi_align_2d_yx import _roi_align_2d_yx
 
 
 class FPNRoIMaskHead(chainer.Chain):
+    mask_size = 28
+
     def __init__(self,
                  n_class,
                  roi_size_box,

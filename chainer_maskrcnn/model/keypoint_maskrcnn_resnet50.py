@@ -146,10 +146,10 @@ class MaskRCNNResnet50(FasterRCNN):
             prepared_imgs.append(img)
             sizes.append(size)
 
-        bboxes = list()
-        labels = list()
-        scores = list()
-        masks = list()
+        bboxes = []
+        labels = []
+        scores = []
+        masks = []
         for img, size in zip(prepared_imgs, sizes):
             with chainer.using_config('train', False), \
                     chainer.function.no_backprop_mode():

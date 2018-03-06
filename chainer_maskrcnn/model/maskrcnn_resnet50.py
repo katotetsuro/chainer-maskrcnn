@@ -137,10 +137,10 @@ class MaskRCNNResnet50(FasterRCNN):
             prepared_imgs.append(img)
             sizes.append(size)
 
-        bboxes = list()
-        labels = list()
-        scores = list()
-        masks = list()
+        bboxes = []
+        labels = []
+        scores = []
+        masks = []
         for img, size in zip(prepared_imgs, sizes):
             with chainer.using_config('train', False), \
                     chainer.function.no_backprop_mode():
@@ -233,17 +233,16 @@ class MaskRCNNResnet50(FasterRCNN):
         img = resize(img, (int(H * scale), int(W * scale)))
 
         # 元のコードは平均を引くだけ、だったんだけど、なんか[0,1]にするだけでうまくいかないかなぁ
-        #        img = (img - self.mean).astype(np.float32, copy=False)
         img = img.astype(np.float32) / 255
 
         return img
 
     def _suppress(self, raw_cls_bbox, raw_prob, raw_roi, raw_level):
-        bbox = list()
-        label = list()
-        score = list()
-        roi = list()
-        level = list()
+        bbox = []
+        label = []
+        score = []
+        roi = []
+        level = []
         # skip cls_id = 0 because it is the background class
         # -> maskは0から始まるから、l-1を使う
         # -> あーしまったTrainChainで最後のクラスToothBlushは範囲外になっておるわ・・
