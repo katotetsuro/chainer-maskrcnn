@@ -7,7 +7,7 @@ from chainerui.extensions import CommandsExtension
 import cv2
 import numpy as np
 from chainer_maskrcnn.model.fpn_keypoint_maskrcnn_train_chain import FPNKeypointMaskRCNNTrainChain
-from chainer_maskrcnn.model.maskrcnn_resnet50 import MaskRCNNResnet50
+from chainer_maskrcnn.model.keypoint_maskrcnn_resnet50 import MaskRCNNResnet50
 from chainer_maskrcnn.dataset.coco_dataset import COCOKeypointsLoader
 
 import argparse
