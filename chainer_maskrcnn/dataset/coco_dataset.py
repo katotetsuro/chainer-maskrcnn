@@ -129,10 +129,13 @@ class COCOKeypointsLoader(chainer.dataset.DatasetMixin):
         self.img_dir = '{}/{}{}'.format(img_dir, split, data_type)
         print('load jpg images from {}'.format(self.img_dir))
         img_ids = self.coco.getImgIds(catIds=[1])  # person only
+        all_img_infos = [(i['file_name'], i['id'])
+                         for i in self.coco.loadImgs(img_ids)]
+        # keypointsが空のデータもあるので、それは間引く
         self.img_infos = list()
-        for info in img_infos:
+        for info in all_img_infos:
             file_name, img_id = info
-            anns = coco.loadAnns(coco.getAnnIds(imgIds=img_id))
+            anns = self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))
             if len(anns) > 0:
                 self.img_infos.append(info)
 
@@ -151,10 +154,18 @@ class COCOKeypointsLoader(chainer.dataset.DatasetMixin):
         anns = self.coco.loadAnns(self.coco.getAnnIds(imgIds=img_id))
 
         keypoints = list()
+        gt_boxes = list()
         for ann in anns:
             kp = ann['keypoints']
             kp = np.array(kp).reshape((-1, 3))
             keypoints.append(kp)
-        keypoints = np.concatenate(keypoints)
 
-        return img, keypoints
+            x, y, w, h = [int(j) for j in ann['bbox']]
+            h = max(1.0, h)
+            w = max(1.0, w)
+            gt_boxes.append(np.array([y, x, y + h, x + w], dtype=np.float32))
+
+        keypoints = np.array(keypoints).reshape((-1, 17, 3))
+        gt_boxes = np.array(gt_boxes).reshape((-1, 4))
+
+        return img, gt_boxes, keypoints

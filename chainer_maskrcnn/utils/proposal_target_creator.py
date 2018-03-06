@@ -31,7 +31,11 @@ class ProposalTargetCreator(object):
                  levels,
                  loc_normalize_mean=(0., 0., 0., 0.),
                  loc_normalize_std=(0.1, 0.1, 0.2, 0.2),
-                 mask_size=14):
+                 mask_size=14,
+                 binary_mask=True):
+        """
+        binary_mask = False -> keypoint
+        """
         xp = cuda.get_array_module(roi)
         roi = cuda.to_cpu(roi)
         bbox = cuda.to_cpu(bbox)
@@ -88,14 +92,38 @@ class ProposalTargetCreator(object):
         # https://engineer.dena.jp/2017/12/chainercvmask-r-cnn.html
         gt_roi_mask = []
         _, h, w = mask.shape
-        for i, idx in enumerate(gt_assignment[pos_index]):
-            A = mask[idx,
-                     np.max((int(sample_roi[i, 0]),
-                             0)):np.min((int(sample_roi[i, 2]), h)),
-                     np.max((int(sample_roi[i, 1]),
-                             0)):np.min((int(sample_roi[i, 3]), w))]
-            gt_roi_mask.append(
-                cv2.resize(A, (mask_size, mask_size)).astype(np.int32))
+        if binary_mask:
+            for i, idx in enumerate(gt_assignment[pos_index]):
+                A = mask[idx,
+                         np.max((int(sample_roi[i, 0]),
+                                 0)):np.min((int(sample_roi[i, 2]), h)),
+                         np.max((int(sample_roi[i, 1]),
+                                 0)):np.min((int(sample_roi[i, 3]), w))]
+                gt_roi_mask.append(
+                    cv2.resize(A, (mask_size, mask_size)).astype(np.int32))
+        else:
+            for i, idx in enumerate(gt_assignment[pos_index]):
+                m = np.zeros((mask_size, mask_size), dtype=np.int32)
+                # remind: shape of keypoints is (N, 17, 3), N is number of bbox, 17 is number of keypoints, 3 is (x, y, v)
+                # v=0: unlabeled, v=1, labeled but invisible, v=2 labeled and visible
+
+                # bbox's (y0, x0), (y1, x1)
+                y0, x0, y1, x1 = list(map(int, sample_roi[i, :4]))
+                kp = mask[idx]  # shape is (17, 3)
+                # convert keypoints coordinate (y, x) into mask coordinate system [0, mask_size]x[0, mask_size]
+                kp[:, :2] = (kp[:, :2] - [y0, x0]) / [max(y1-y0, 1), max(x1-x0, 1)] * mask_size
+                # mask_size x mask_size 空間でどこにあるかをラベルとして扱う(あとでsoftmax cross entropyする）
+                # -1でignoreされる
+                keypoint_labels = np.zeros(17, dtype=np.int32)
+                for j, r in enumerate(kp):
+                    y, x, v = list(map(int, r))
+                    if v == 2 and 0 <= y and y < mask_size and 0 <= x and x < mask_size:
+                        keypoint_labels[j] = y * mask_size + x
+
+                    else:
+                        keypoint_labels[j] = -1
+
+                gt_roi_mask.append(keypoint_labels)
 
         gt_roi_mask = xp.array(gt_roi_mask)
 
