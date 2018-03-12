@@ -25,7 +25,7 @@ mask accuracy looks better than above.
 
 ## keypoint
 
-!! I just trained 20000 iter, so result is bad.
+120000 iter trained
 
 ![](imgs/key.jpg)
 
