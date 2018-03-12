@@ -9,10 +9,6 @@ from .maskrcnn_resnet50 import MaskRCNNResnet50
 from .extractor.c4_backbone import C4Backbone
 from .extractor.feature_pyramid_network import FeaturePyramidNetwork
 from chainer_maskrcnn.utils.proposal_target_creator import ProposalTargetCreator
-import time
-import math
-
-measure_time = False
 
 
 class FPNMaskRCNNTrainChain(FasterRCNNTrainChain):
