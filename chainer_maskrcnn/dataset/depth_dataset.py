@@ -25,7 +25,7 @@ class DepthDataset(chainer.dataset.DatasetMixin):
             keypoints = f['keypoints']
 
         if keypoints.shape[1] == 2:
-            visible = np.zeros((len(keypoints)))
+            visible = np.zeros((len(keypoints))).reshape((-1, 1))
             visible.fill(2)
             keypoints = np.concatenate((keypoints, visible), axis=1)
         else:
