@@ -24,6 +24,10 @@ class DepthDataset(chainer.dataset.DatasetMixin):
             img = f['depth']
             keypoints = f['keypoints']
 
+        w = 640
+        h = 480
+        keypoints[:, :2] = np.clip(keypoints[:, :2], 0, [h, w])
+
         if keypoints.shape[1] == 2:
             visible = np.zeros((len(keypoints))).reshape((-1, 1))
             visible.fill(2)
@@ -37,8 +41,9 @@ class DepthDataset(chainer.dataset.DatasetMixin):
             print(f'複数人が写っています {self.data[index]}')
 
         # compute bounding box
-        x0 = np.min(keypoints[:, :2], axis=0) - [10, 10]
-        x1 = np.max(keypoints[:, :2], axis=0) + [10, 0]
+        x0 = np.clip(
+            np.min(keypoints[:, :2], axis=0) - [10, 10], 0, [h, w])
+        x1 = np.clip(np.max(keypoints[:, :2], axis=0) + [10, 0], 0, [h, w])
         bbox = np.concatenate([x0, x1]).reshape((1, 4))
 
         # (number of box, numberof keypoints, (y,x,visibility))
