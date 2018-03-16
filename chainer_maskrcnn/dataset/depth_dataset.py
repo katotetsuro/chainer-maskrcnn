@@ -5,6 +5,8 @@ import cv2
 
 
 class DepthDataset(chainer.dataset.DatasetMixin):
+    n_keypoints = 20
+
     def __init__(self, path, root='.'):
         super().__init__()
         with open(path, 'r') as f:
@@ -38,5 +40,14 @@ class DepthDataset(chainer.dataset.DatasetMixin):
         x0 = np.min(keypoints[:, :2], axis=0) - [10, 10]
         x1 = np.max(keypoints[:, :2], axis=0) + [10, 0]
         bbox = np.concatenate([x0, x1]).reshape((1, 4))
+
+        # (number of box, numberof keypoints, (y,x,visibility))
+        keypoints = keypoints[None]
+
+        # make number of channels 3
+        # なんとなく[0,255]くらいのfloatの配列にしておく
+        # FasterRCNNのprepareメソッドで /255されるという複雑さ
+        img = img.astype(np.float32) / 4000 * 255
+        img = np.stack([img, img, img])
 
         return img, bbox, keypoints

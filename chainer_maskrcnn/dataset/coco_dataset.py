@@ -103,6 +103,8 @@ class COCOMaskLoader(chainer.dataset.DatasetMixin):
 
 
 class COCOKeypointsLoader(chainer.dataset.DatasetMixin):
+    n_keypoints = 17
+
     def __init__(self,
                  anno_dir='data/annotations',
                  img_dir='data',

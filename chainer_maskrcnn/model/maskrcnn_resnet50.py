@@ -24,6 +24,7 @@ class MaskRCNNResnet50(FasterRCNN):
 
     def __init__(self,
                  n_fg_class,
+                 n_keypoints=None,
                  pretrained_model=None,
                  min_size=600,
                  max_size=1000,
@@ -99,8 +100,12 @@ class MaskRCNNResnet50(FasterRCNN):
                 mask_initialW=chainer.initializers.Normal(0.01))
             self.predict_mask = True
         elif head_arch == 'fpn_keypoint':
+            if n_keypoints == None:
+                raise ValueError(
+                    'n_keypoints must be set in keypoint detection')
             head = FPNRoIKeypointHead(
                 2,
+                n_keypoints,
                 roi_size_box=7,
                 roi_size_mask=14,
                 loc_initialW=loc_initialW,

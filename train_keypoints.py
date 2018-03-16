@@ -7,8 +7,9 @@ from chainerui.extensions import CommandsExtension
 import cv2
 import numpy as np
 from chainer_maskrcnn.model.fpn_maskrcnn_train_chain import FPNMaskRCNNTrainChain
-from chainer_maskrcnn.model.keypoint_maskrcnn_resnet50 import MaskRCNNResnet50
+from chainer_maskrcnn.model.maskrcnn_resnet50 import MaskRCNNResnet50
 from chainer_maskrcnn.dataset.coco_dataset import COCOKeypointsLoader
+from chainer_maskrcnn.dataset.depth_dataset import DepthDataset
 
 import argparse
 from os.path import exists, isfile
@@ -16,13 +17,32 @@ import time
 import _pickle as pickle
 
 
-def calc_mask_loss(roi_cls_mask, gt_roi_mask, xp, gt_roi_label):
+def calc_mask_loss(roi_cls_mask, gt_roi_mask, xp, gt_roi_label, num_keypoints=17):
     # 出力を (n_proposals, 17, mask_size, mask_size) から (n_positive_sample *17, mask_size*mask_size) にreshapeして、softmax crossentropyを取る
     num_positives = gt_roi_mask.shape[0]
     roi_mask = roi_cls_mask[:num_positives].reshape(
-        (num_positives * 17, -1))
+        (num_positives * num_keypoints, -1))
     gt_roi_mask = gt_roi_mask.reshape((-1,))
     return chainer.functions.softmax_cross_entropy(roi_mask, gt_roi_mask)
+
+
+def load_dataset(dataset, file):
+    if isfile(file):
+        print('pklから読み込みます')
+        dataload_start = time.time()
+        with open(file, 'rb') as f:
+            train_data = pickle.load(f)
+        dataload_end = time.time()
+        print('pklからの読み込み {}'.format(dataload_end - dataload_start))
+    else:
+        dataload_start = time.time()
+        train_data = dataset()
+        dataload_end = time.time()
+        print('普通の読み込み {}'.format(dataload_end - dataload_start))
+        print('次回のために保存します')
+        with open(file, 'wb') as f:
+            pickle.dump(train_data, f)
+    return train_data
 
 
 class Transform():
@@ -61,6 +81,7 @@ def main():
     parser.add_argument('--head_arch', '-a', type=str, default='fpn_keypoint')
     parser.add_argument('--multi_gpu', '-m', type=int, default=0)
     parser.add_argument('--batch_size', '-b', type=int, default=1)
+    parser.add_argument('--dataset', default='coco', choices=['coco', 'depth'])
 
     args = parser.parse_args()
 
@@ -72,6 +93,14 @@ def main():
     print('backbone architecture:{}'.format(args.backbone))
     print('head architecture:{}'.format(args.head_arch))
 
+    if args.dataset == 'coco':
+        train_data = load_dataset(COCOKeypointsLoader, 'train_data_kp.pkl')
+    elif args.dataset == 'depth':
+        train_data = load_dataset(
+            lambda: DepthDataset(path='data/rgbd/train.txt', root='data/rgbd/'), 'train_data_depth_kp.pkl')
+    n_keypoints = train_data.n_keypoints
+    print(f'number of keypoints={n_keypoints}')
+
     if args.multi_gpu:
         print('try to use chainer.training.updaters.MultiprocessParallelUpdater')
         if not chainer.training.updaters.MultiprocessParallelUpdater.available():
@@ -79,10 +108,11 @@ def main():
             args.multi_gpu = 0
 
     faster_rcnn = MaskRCNNResnet50(
-        n_fg_class=1, backbone=args.backbone, head_arch=args.head_arch)
+        n_fg_class=1, backbone=args.backbone, head_arch=args.head_arch,
+        n_keypoints=n_keypoints)
     faster_rcnn.use_preset('evaluate')
     model = FPNMaskRCNNTrainChain(
-        faster_rcnn, mask_loss_fun=calc_mask_loss, binary_mask=False)
+        faster_rcnn, mask_loss_fun=lambda x, y, z, w: calc_mask_loss(x, y, z, w, num_keypoints=n_keypoints), binary_mask=False)
     if exists(args.weight):
         chainer.serializers.load_npz(
             args.weight, model.faster_rcnn, strict=False)
@@ -95,25 +125,8 @@ def main():
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.WeightDecay(rate=0.0005))
 
-    pkl_file = 'train_data_kp.pkl'
-    if isfile(pkl_file):
-        print('pklから読み込みます')
-        dataload_start = time.time()
-        with open(pkl_file, 'rb') as f:
-            coco_train_data = pickle.load(f)
-        dataload_end = time.time()
-        print('pklからの読み込み {}'.format(dataload_end - dataload_start))
-    else:
-        dataload_start = time.time()
-        coco_train_data = COCOKeypointsLoader()
-        dataload_end = time.time()
-        print('普通の読み込み {}'.format(dataload_end - dataload_start))
-        print('次回のために保存します')
-        with open(pkl_file, 'wb') as f:
-            pickle.dump(coco_train_data, f)
-
-    train_data = TransformDataset(coco_train_data, Transform(faster_rcnn))
-
+    # TransformでFaster-RCNNのprepareを参照するので、初期化順が複雑に入り組んでしまったなー
+    train_data = TransformDataset(train_data, Transform(faster_rcnn))
     if args.multi_gpu:
         train_iters = [chainer.iterators.SerialIterator(
             train_data, 1, repeat=True, shuffle=True) for i in range(8)]

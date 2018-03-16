@@ -112,10 +112,10 @@ class ProposalTargetCreator(object):
                 kp = mask[idx]  # shape is (17, 3)
                 # convert keypoints coordinate (y, x) into mask coordinate system [0, mask_size]x[0, mask_size]
                 kp[:, :2] = (kp[:, :2] - [y0, x0]) / \
-                    [max(y1-y0, 1), max(x1-x0, 1)] * mask_size
+                    [max(y1 - y0, 1), max(x1 - x0, 1)] * mask_size
                 # mask_size x mask_size 空間でどこにあるかをラベルとして扱う(あとでsoftmax cross entropyする）
                 # -1でignoreされる
-                keypoint_labels = np.zeros(17, dtype=np.int32)
+                keypoint_labels = np.zeros(kp.shape[0], dtype=np.int32)
                 for j, r in enumerate(kp):
                     y, x, v = list(map(int, r))
                     if v == 2 and 0 <= y and y < mask_size and 0 <= x and x < mask_size:

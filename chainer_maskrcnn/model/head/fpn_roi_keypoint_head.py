@@ -12,6 +12,7 @@ class FPNRoIKeypointHead(chainer.Chain):
 
     def __init__(self,
                  n_class,
+                 n_keypoints,
                  roi_size_box,
                  roi_size_mask,
                  loc_initialW=None,
@@ -46,7 +47,7 @@ class FPNRoIKeypointHead(chainer.Chain):
                 initialW=mask_initialW)
             self.conv2 = L.Convolution2D(
                 in_channels=None,
-                out_channels=17,
+                out_channels=n_keypoints,
                 ksize=1,
                 stride=1,
                 pad=0,
