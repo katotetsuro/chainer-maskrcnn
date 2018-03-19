@@ -24,9 +24,19 @@ class DepthDataset(chainer.dataset.DatasetMixin):
             img = f['depth']
             keypoints = f['keypoints']
 
-        w = 640
-        h = 480
-        keypoints[:, :2] = np.clip(keypoints[:, :2], 0, [h, w])
+        s = list(filter(lambda x: x.startswith('s'),
+                        self.data[index].split('_')))[0]
+        s = int(s.split('s')[1])
+        s = int(s)
+        if 60 <= s and s <= 79:
+            scale = 2.0
+        else:
+            scale = 1.0
+
+        h, w = img.shape
+        h -= 1
+        w -= 1
+        keypoints[:, :2] = np.clip(keypoints[:, :2] * scale, 0, [h, w])
 
         if keypoints.shape[1] == 2:
             visible = np.zeros((len(keypoints))).reshape((-1, 1))
@@ -43,7 +53,7 @@ class DepthDataset(chainer.dataset.DatasetMixin):
         # compute bounding box
         x0 = np.clip(
             np.min(keypoints[:, :2], axis=0) - [10, 10], 0, [h, w])
-        x1 = np.clip(np.max(keypoints[:, :2], axis=0) + [10, 0], 0, [h, w])
+        x1 = np.clip(np.max(keypoints[:, :2], axis=0) + [0, 10], 0, [h, w])
         bbox = np.concatenate([x0, x1]).reshape((1, 4))
 
         # (number of box, numberof keypoints, (y,x,visibility))
