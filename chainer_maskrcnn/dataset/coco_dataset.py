@@ -22,11 +22,11 @@ class COCOMaskLoader(chainer.dataset.DatasetMixin):
         if split == 'validation':
             split = 'val'
 
-        ann_file = f'{anno_dir}/instances_{split}{data_type}.json'
+        ann_file = '{}/instances_{}{}.json'.format(anno_dir, split, data_type)
         self.coco = COCO(ann_file)
 
-        self.img_dir = f'{img_dir}/{split}{data_type}'
-        print(f'load jpg images from {self.img_dir}')
+        self.img_dir = '{}/{}{}'.format(img_dir, split, data_type)
+        print('load jpg images from {}'.format(self.img_dir))
         target_cats = [] if category_filter is None else category_filter
         self.cat_ids = self.coco.getCatIds(catNms=target_cats)
         # cat_idsの中のどれかが含まれる画像、を探したい（or検索）
@@ -35,10 +35,10 @@ class COCOMaskLoader(chainer.dataset.DatasetMixin):
         for cat_id in self.cat_ids:
             img_ids |= set(self.coco.getImgIds(catIds=[cat_id]))
 
-        print(f'before filter: {len(img_ids)}')
+        print('before filter: {}'.format(len(img_ids)))
         img_ids = list(
             filter(lambda x: self._contain_large_annotation_only(x), img_ids))
-        print(f'after filter: {len(img_ids)}')
+        print('after filter: {)}'.format(len(img_ids)))
 
         self.img_infos = [(i['file_name'], i['id'])
                           for i in self.coco.loadImgs(img_ids)]
@@ -117,10 +117,10 @@ class COCOKeypointsLoader(chainer.dataset.DatasetMixin):
         if split == 'validation':
             split = 'val'
 
-        ann_file = f'{anno_dir}/person_keypoints_{split}{data_type}.json'
+        ann_file = '{}/person_keypoints_{}{}.json'.format(anno_dir, split, data_type) 
         self.coco = COCO(ann_file)
 
-        self.img_dir = f'{img_dir}/{split}{data_type}'
+        self.img_dir = '{}/{}{}'.format(img_dir, split, data_type)
         print('load jpg images from {}'.format(self.img_dir))
         img_ids = self.coco.getImgIds(catIds=[1])  # person only
         all_img_infos = [(i['file_name'], i['id'])
