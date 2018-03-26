@@ -56,13 +56,15 @@ class DepthDataset(chainer.dataset.DatasetMixin):
         x1 = np.clip(np.max(keypoints[:, :2], axis=0) + [0, 10], 0, [h, w])
         bbox = np.concatenate([x0, x1]).reshape((1, 4))
 
-        # (number of box, numberof keypoints, (y,x,visibility))
+        # keypointの(y,x)の順番をあえて逆にしておくという辻褄合わせ
+        keypoints[:, :2] = keypoints[:, [1, 0]]
+        # (number of box, numberof keypoints, (x,y,visibility))
         keypoints = keypoints[None]
 
         # make number of channels 3
         # なんとなく[0,255]くらいのfloatの配列にしておく
         # FasterRCNNのprepareメソッドで /255されるという複雑さ
-        img = img.astype(np.float32) / 4000 * 255
+        img = (img.astype(np.float32) - 1000) / 3000 * 255
         img = np.stack([img, img, img])
 
         return img, bbox, keypoints
