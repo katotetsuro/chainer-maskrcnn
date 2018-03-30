@@ -3,7 +3,7 @@ import chainer.links as L
 import chainer.functions as F
 
 
-class ConvBatch(chainer.Link):
+class ConvBatch(chainer.Chain):
     def __init__(self, out_channels, ksize, stride, pad):
         super().__init__()
         with self.init_scope():
@@ -15,7 +15,7 @@ class ConvBatch(chainer.Link):
         return F.leaky_relu(self.bn(self.c(x)))
 
 
-class Darknet(chainer.Link):
+class Darknet(chainer.Chain):
     # determined by network architecture (where stride >1 occurs.)
     feat_strides = [64]
     # inverse of feat_strides. used in RoIAlign to calculate x in Image Coord to x' in feature map
