@@ -15,6 +15,7 @@ class FPNRoIKeypointHead(chainer.Chain):
                  n_keypoints,
                  roi_size_box,
                  roi_size_mask,
+                 n_mask_convs=8,
                  loc_initialW=None,
                  score_initialW=None,
                  mask_initialW=None):
@@ -31,13 +32,9 @@ class FPNRoIKeypointHead(chainer.Chain):
 
             # mask prediction path
             self.mask_convs = chainer.ChainList()
-            for i in range(8):
+            for i in range(n_mask_convs):
                 self.mask_convs.add_link(
                     L.Convolution2D(None, 256, ksize=3, pad=1))
-            #self.mask1 = L.Convolution2D(None, 256, ksize=3, pad=1)
-            #self.mask2 = L.Convolution2D(None, 256, ksize=3, pad=1)
-            #self.mask3 = L.Convolution2D(None, 256, ksize=3, pad=1)
-            #self.mask4 = L.Convolution2D(None, 256, ksize=3, pad=1)
             self.deconv1 = L.Deconvolution2D(
                 in_channels=None,
                 out_channels=256,
@@ -83,10 +80,6 @@ class FPNRoIKeypointHead(chainer.Chain):
             mask = F.concat(pool_mask, axis=0)
             for l in self.mask_convs.children():
                 mask = F.relu(l(mask))
-            #mask = F.relu(self.mask1(pool_mask))
-            #mask = F.relu(self.mask2(mask))
-            #mask = F.relu(self.mask3(mask))
-            #mask = F.relu(self.mask4(mask))
             mask = self.conv2(self.deconv1(mask))
             *_, h, w = mask.shape
             mask = F.resize_images(mask, output_shape=(2 * h, 2 * w))
@@ -104,10 +97,6 @@ class FPNRoIKeypointHead(chainer.Chain):
         mask = F.concat(pool_mask, axis=0)
         for l in self.mask_convs:
             mask = F.relu(l(mask))
-        #mask = F.relu(self.mask1(pool_mask))
-        #mask = F.relu(self.mask2(mask))
-        #mask = F.relu(self.mask3(mask))
-        #mask = F.relu(self.mask4(mask))
         mask = self.conv2(self.deconv1(mask))
         *_, h, w = mask.shape
         mask = F.resize_images(mask, output_shape=(2 * h, 2 * w))

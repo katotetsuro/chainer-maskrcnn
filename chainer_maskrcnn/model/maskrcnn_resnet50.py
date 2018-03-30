@@ -11,6 +11,7 @@ from chainercv.transforms.image.resize import resize
 from chainercv.utils import non_maximum_suppression
 from .extractor.c4_backbone import C4Backbone
 from .extractor.feature_pyramid_network import FeaturePyramidNetwork
+from .extractor.darknet import Darknet
 from .rpn.multilevel_region_proposal_network import MultilevelRegionProposalNetwork
 from .head.resnet_roi_mask_head import ResnetRoIMaskHead
 from .head.light_roi_mask_head import LightRoIMaskHead
@@ -25,6 +26,7 @@ class MaskRCNNResnet50(FasterRCNN):
     def __init__(self,
                  n_fg_class,
                  n_keypoints=None,
+                 n_mask_convs=None,
                  pretrained_model=None,
                  min_size=600,
                  max_size=1000,
@@ -51,14 +53,10 @@ class MaskRCNNResnet50(FasterRCNN):
             extractor = FeaturePyramidNetwork()
             print('feat_strides:', extractor.feat_strides,
                   'spatial_scales:', extractor.spatial_scales)
-            rpn_in_channels = 256
-            rpn_mid_channels = 256  # ??
             rpn = MultilevelRegionProposalNetwork(
                 anchor_scales=extractor.anchor_scales, feat_strides=extractor.feat_strides)
         elif backbone == 'c4':
             extractor = C4Backbone('auto')
-            rpn_in_channels = 1024
-            rpn_mid_channels = 516  # ??
             rpn = RegionProposalNetwork(
                 1024,
                 516,
@@ -68,9 +66,13 @@ class MaskRCNNResnet50(FasterRCNN):
                 initialW=rpn_initialW,
                 proposal_creator_params=proposal_creator_params,
             )
+        elif backbone == 'darknet':
+            extractor = Darknet()
+            rpn = MultilevelRegionProposalNetwork(
+                anchor_scales=extractor.anchor_scales, feat_strides=extractor.feat_strides, in_channels=1024)
         else:
             raise ValueError(
-                'select backbone frome fpn or c4: {}'.format(backbone))
+                'unknown backbone: {}'.format(backbone))
 
         if head_arch == 'res5':
             head = ResnetRoIMaskHead(
@@ -103,11 +105,14 @@ class MaskRCNNResnet50(FasterRCNN):
             if n_keypoints == None:
                 raise ValueError(
                     'n_keypoints must be set in keypoint detection')
+            if n_mask_convs == None:
+                n_mask_convs = 8
             head = FPNRoIKeypointHead(
                 2,
                 n_keypoints,
                 roi_size_box=7,
                 roi_size_mask=14,
+                n_mask_convs=n_mask_convs,
                 loc_initialW=loc_initialW,
                 score_initialW=score_initialW,
                 mask_initialW=chainer.initializers.Normal(0.01))

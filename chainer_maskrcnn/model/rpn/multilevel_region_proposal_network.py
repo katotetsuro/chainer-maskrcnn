@@ -19,6 +19,9 @@ def map_rois_to_fpn_levels(xp, rois, k_min=2, k_max=6):
     on the heuristic in the FPN paper.
     roi: assume (R, 4), y_min, x_min, y_max, x_max
     """
+    # depthの実験をしている間の暫定措置
+    k_min = 0
+    k_max = 0
     # Compute level ids
     area = xp.prod(rois[:, 2:] - rois[:, :2], axis=1)
     s = xp.sqrt(area)
