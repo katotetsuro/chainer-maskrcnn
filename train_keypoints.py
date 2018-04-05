@@ -83,6 +83,8 @@ def main():
     parser.add_argument('--batch_size', '-b', type=int, default=1)
     parser.add_argument('--dataset', default='coco', choices=['coco', 'depth'])
     parser.add_argument('--n_mask_convs', type=int, default=None)
+    parser.add_argument('--min_size', type=int, default=600)
+    parser.add_argument('--max_size', type=int, default=1000)
 
     args = parser.parse_args()
 
@@ -110,7 +112,7 @@ def main():
 
     faster_rcnn = MaskRCNNResnet50(
         n_fg_class=1, backbone=args.backbone, head_arch=args.head_arch,
-        n_keypoints=n_keypoints, n_mask_convs=args.n_mask_convs)
+        n_keypoints=n_keypoints, n_mask_convs=args.n_mask_convs, min_size=args.min_size, max_size=args.max_size)
     faster_rcnn.use_preset('evaluate')
     model = FPNMaskRCNNTrainChain(
         faster_rcnn, mask_loss_fun=lambda x, y, z, w: calc_mask_loss(x, y, z, w, num_keypoints=n_keypoints), binary_mask=False)
