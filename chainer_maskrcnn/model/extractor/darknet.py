@@ -17,12 +17,12 @@ class ConvBatch(chainer.Chain):
 
 class Darknet(chainer.Chain):
     # determined by network architecture (where stride >1 occurs.)
-    feat_strides = [64]
+    feat_strides = [16]
     # inverse of feat_strides. used in RoIAlign to calculate x in Image Coord to x' in feature map
     spatial_scales = list(map(lambda x: 1. / x, feat_strides))
     anchor_base = 16  # from original implementation. why?
     # from FPN paper.
-    anchor_sizes = [128]
+    anchor_sizes = [64]
     # anchor_sizes / anchor_base anchor_base is invisible from lamba function??
     anchor_scales = list(map(lambda x: x / 16., anchor_sizes))
 
@@ -35,8 +35,8 @@ class Darknet(chainer.Chain):
             self.conv3 = ConvBatch(64, 3, 1, 1)
             self.conv4 = ConvBatch(128, 3, 1, 1)
             self.conv5 = ConvBatch(256, 3, 1, 1)
-            self.conv6 = ConvBatch(512, 3, 1, 1)
-            self.conv7 = ConvBatch(1024, 3, 1, 1)
+            # self.conv6 = ConvBatch(512, 3, 1, 1)
+            # self.conv7 = ConvBatch(1024, 3, 1, 1)
         # anchor_sizes / anchor_base anchor_base is invisible from lamba function??
         self.anchor_scales = list(
             map(lambda x: x / float(self.anchor_base), self.anchor_sizes))
@@ -51,9 +51,9 @@ class Darknet(chainer.Chain):
         h = self.conv4(h)
         h = F.max_pooling_2d(h, ksize=2, stride=2)
         h = self.conv5(h)
-        h = F.max_pooling_2d(h, ksize=2, stride=2)
-        h = self.conv6(h)
-        h = F.max_pooling_2d(h, ksize=2, stride=2)
-        h = self.conv7(h)
+        # h = F.max_pooling_2d(h, ksize=2, stride=2)
+        # h = self.conv6(h)
+        # h = F.max_pooling_2d(h, ksize=2, stride=2)
+        # h = self.conv7(h)
 
         return h,
