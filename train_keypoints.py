@@ -10,7 +10,7 @@ from chainer_maskrcnn.model.fpn_maskrcnn_train_chain import FPNMaskRCNNTrainChai
 from chainer_maskrcnn.model.maskrcnn_resnet50 import MaskRCNNResnet50
 from chainer_maskrcnn.dataset.coco_dataset import COCOKeypointsLoader
 from chainer_maskrcnn.dataset.depth_dataset import DepthDataset
-from utils.depth_transformer import DepthTransformer
+from chainer_maskrcnn.utils.depth_transformer import DepthTransformer
 
 import argparse
 from os.path import exists, isfile
@@ -100,12 +100,13 @@ def main():
 
     if args.dataset == 'coco':
         train_data = load_dataset(COCOKeypointsLoader, 'train_data_kp.pkl')
+        n_keypoints = train_data.n_keypoints
     elif args.dataset == 'depth':
         train_data = load_dataset(
             lambda: DepthDataset(path='data/rgbd/train.txt', root='data/rgbd/'), '')
+        n_keypoints = train_data.n_keypoints
         train_data = chainer.datasets.TransformDataset(
             train_data, DepthTransformer())
-    n_keypoints = train_data.n_keypoints
     print(f'number of keypoints={n_keypoints}')
 
     if args.multi_gpu:
