@@ -58,13 +58,20 @@ class FPNRoIKeypointHead(chainer.Chain):
 
         pool_box = list()
         levels = chainer.cuda.to_cpu(levels).astype(np.int32)
-        for l, i in zip(levels, indices_and_rois):
-            pool_box.append(_roi_align_2d_yx(x[l], i[None], self.roi_size_box,
-                                             self.roi_size_box, spatial_scales[l]))
 
-        pool_box = F.concat(pool_box, axis=0)
+        if len(np.unique(levels)) == 1:
+            pool_box = _roi_align_2d_yx(x[0], indices_and_rois, self.roi_size_box,
+                                        self.roi_size_box, spatial_scales[0])
+        else:
+            for l, i in zip(levels, indices_and_rois):
+                v = _roi_align_2d_yx(x[l], i[None], self.roi_size_box,
+                                     self.roi_size_box, spatial_scales[l])
+                pool_box.append(v)
 
-        h = F.relu(self.conv1(pool_box))
+            pool_box = F.concat(pool_box, axis=0)
+
+        h = self.conv1(pool_box)
+        h = F.relu(h)
         h = F.relu(self.fc1(h))
         h = F.relu(self.fc2(h))
         roi_cls_locs = self.cls_loc(h)
