@@ -39,9 +39,10 @@ def load_dataset(dataset, file):
         train_data = dataset()
         dataload_end = time.time()
         print('普通の読み込み {}'.format(dataload_end - dataload_start))
-        print('次回のために保存します')
-        with open(file, 'wb') as f:
-            pickle.dump(train_data, f)
+        if file is not '':
+            print('次回のために保存します')
+            with open(file, 'wb') as f:
+                pickle.dump(train_data, f)
     return train_data
 
 
@@ -100,7 +101,7 @@ def main():
         train_data = load_dataset(COCOKeypointsLoader, 'train_data_kp.pkl')
     elif args.dataset == 'depth':
         train_data = load_dataset(
-            lambda: DepthDataset(path='data/rgbd/train.txt', root='data/rgbd/'), 'train_data_depth_kp.pkl')
+            lambda: DepthDataset(path='data/rgbd/train.txt', root='data/rgbd/'), '')
     n_keypoints = train_data.n_keypoints
     print(f'number of keypoints={n_keypoints}')
 
