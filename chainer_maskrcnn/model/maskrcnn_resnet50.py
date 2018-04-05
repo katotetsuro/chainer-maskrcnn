@@ -69,7 +69,9 @@ class MaskRCNNResnet50(FasterRCNN):
         elif backbone == 'darknet':
             extractor = Darknet()
             rpn = MultilevelRegionProposalNetwork(
-                anchor_scales=extractor.anchor_scales, feat_strides=extractor.feat_strides, in_channels=1024)
+                anchor_scales=extractor.anchor_scales, feat_strides=extractor.feat_strides, in_channels=256,
+                proposal_creator_params={'n_test_pre_nms': 300,
+                                         'n_test_post_nms': 30})
         else:
             raise ValueError(
                 'unknown backbone: {}'.format(backbone))
