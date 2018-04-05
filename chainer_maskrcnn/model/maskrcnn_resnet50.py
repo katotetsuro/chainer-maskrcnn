@@ -168,7 +168,7 @@ class MaskRCNNResnet50(FasterRCNN):
         masks = []
         for img, size in zip(prepared_imgs, sizes):
             with chainer.using_config('train', False), \
-                    chainer.function.no_backprop_mode():
+                    chainer.using_config('enable_backprop', False):
                 img_var = chainer.Variable(self.xp.asarray(img[None]))
                 scale = img_var.shape[3] / size[1]
                 roi_cls_locs, roi_scores, rois, roi_indices, levels = self.__call__(
@@ -215,7 +215,7 @@ class MaskRCNNResnet50(FasterRCNN):
             mask_per_image = []
             if len(label) > 0:
                 with chainer.using_config('train', False), \
-                        chainer.function.no_backprop_mode():
+                        chainer.using_config('enable_backprop', False):
                     # because we are assuming batch size=1, all elements of roi_indices is zero.
                     roi_indices = self.xp.zeros(roi.shape[0], dtype=np.float32)
                     bbox_gpu = cuda.to_gpu(
