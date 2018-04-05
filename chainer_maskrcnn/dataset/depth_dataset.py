@@ -24,19 +24,10 @@ class DepthDataset(chainer.dataset.DatasetMixin):
             img = f['depth']
             keypoints = f['keypoints']
 
-        s = list(filter(lambda x: x.startswith('s'),
-                        self.data[index].split('_')))[0]
-        s = int(s.split('s')[1])
-        s = int(s)
-        if 60 <= s and s <= 79:
-            scale = 2.0
-        else:
-            scale = 1.0
-
         h, w = img.shape
         h -= 1
         w -= 1
-        keypoints[:, :2] = np.clip(keypoints[:, :2] * scale, 0, [h, w])
+        keypoints[:, :2] = np.clip(keypoints[:, :2], 0, [h, w])
 
         if keypoints.shape[1] == 2:
             visible = np.zeros((len(keypoints))).reshape((-1, 1))

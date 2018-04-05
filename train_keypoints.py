@@ -10,6 +10,7 @@ from chainer_maskrcnn.model.fpn_maskrcnn_train_chain import FPNMaskRCNNTrainChai
 from chainer_maskrcnn.model.maskrcnn_resnet50 import MaskRCNNResnet50
 from chainer_maskrcnn.dataset.coco_dataset import COCOKeypointsLoader
 from chainer_maskrcnn.dataset.depth_dataset import DepthDataset
+from utils.depth_transformer import DepthTransformer
 
 import argparse
 from os.path import exists, isfile
@@ -102,6 +103,8 @@ def main():
     elif args.dataset == 'depth':
         train_data = load_dataset(
             lambda: DepthDataset(path='data/rgbd/train.txt', root='data/rgbd/'), '')
+        train_data = chainer.datasets.TransformDataset(
+            train_data, DepthTransformer())
     n_keypoints = train_data.n_keypoints
     print(f'number of keypoints={n_keypoints}')
 
@@ -152,7 +155,7 @@ def main():
         trigger=(20000, 'iteration'))
 
     trainer.extend(
-        extensions.ExponentialShift('lr', 0.1), trigger=(1, 'epoch'))
+        extensions.ExponentialShift('lr', 0.1), trigger=(3, 'epoch'))
 
     log_interval = 100, 'iteration'
     trainer.extend(
