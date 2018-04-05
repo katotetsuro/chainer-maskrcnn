@@ -8,7 +8,6 @@ from chainercv.links.model.faster_rcnn.region_proposal_network import _enumerate
 
 from chainercv.links.model.faster_rcnn.utils.generate_anchor_base import \
     generate_anchor_base
-#from proposal_creator import ProposalCreator
 from chainercv.links.model.faster_rcnn.utils.proposal_creator import ProposalCreator
 
 
@@ -122,10 +121,10 @@ class MultilevelRegionProposalNetwork(chainer.Chain):
                 Its shape is :math:`(H W A, 4)`.
         """
 
-        locs = list()
-        scores = list()
-        fg_scores = list()
-        anchors = list()
+        locs = []
+        scores = []
+        fg_scores = []
+        anchors = []
         for i, x in enumerate(xs):
             n, _, hh, ww = x.shape
             anchor = _enumerate_shifted_anchor(
@@ -154,8 +153,8 @@ class MultilevelRegionProposalNetwork(chainer.Chain):
         fg_scores = F.concat(fg_scores, axis=1)
         anchors = self.xp.concatenate(anchors, axis=0)
 
-        rois = list()
-        roi_indices = list()
+        rois = []
+        roi_indices = []
         for i in range(n):
             roi = self.proposal_layer(
                 locs[i].array, fg_scores[i].array, anchors, img_size, scale=scale)
