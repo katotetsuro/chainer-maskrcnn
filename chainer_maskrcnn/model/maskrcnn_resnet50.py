@@ -239,7 +239,7 @@ class MaskRCNNResnet50(FasterRCNN):
 
                     mask_per_image.append(m)
                 else:
-                    mask = mask.reshape((mask.shape[0], 17, -1)).data
+                    mask = mask.reshape((mask.shape[0], 20, -1)).data
                     mask = cuda.to_cpu(mask)
                     mask_per_image.append(mask)
 
