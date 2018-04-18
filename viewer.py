@@ -67,13 +67,14 @@ try:
         s = 56
         with using_config('train', False), using_config('enable_backprop', False), using_config('use_ideep', 'auto'):
             box, label, score, keypoints = model.predict(cropped_depth[None])
+
             if len(score[0]):
                 indices = np.array(score[0]) > 0.9
                 # import pdb
                 # pdb.set_trace()
                 kps = np.argmax(keypoints[0][0], axis=2)
                 for b, kp in zip(box[0][indices], kps[indices]):
-                    #sb = (b * scale).astype(np.int32)
+                    # sb = (b * scale).astype(np.int32)
                     sb = (b * 1).astype(np.int32)
                     cv2.rectangle(
                         depth_colormap, (sb[1] + margin, sb[0]), (sb[3] + margin, sb[2]), (0, 0, 255), 3)
@@ -93,7 +94,7 @@ try:
             freeze = not freeze
 
         end = time.time()
-#        print(1. / (end - start))
+        print(1. / (end - start))
 
 finally:
     # Stop streaming
