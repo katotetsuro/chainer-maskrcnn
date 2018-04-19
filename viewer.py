@@ -10,6 +10,9 @@ import vis
 
 model = MaskRCNNResnet50(1, n_keypoints=20, n_mask_convs=2,
                          min_size=240, backbone='darknet', head_arch='fpn_keypoint')
+
+if hasattr(model, 'to_intel64'):
+    model.to_intel64()
 chainer.serializers.load_npz(
     'result/depth_trained_model/fastdepth-model_40000.npz', model, strict=True)
 
