@@ -13,11 +13,13 @@ import vis
 
 
 class SimpleInfer:
-    def __init__(self, file=None):
+    def __init__(self, weight, file=None):
         self.model = MaskRCNNResnet50(1, n_keypoints=20, n_mask_convs=2,
                                       min_size=240, backbone='darknet', head_arch='fpn_keypoint')
-        chainer.serializers.load_npz(
-            'result/depth_trained_model/fastdepth-model_40000.npz', self.model, strict=True)
+        chainer.serializers.load_npz(weight, self.model, strict=True)
+        self.in_channels = self.model.extractor.conv1.c.W.shape[1]
+        print('number of parameters:{}'.format(
+            sum(p.data.size for p in self.model.params())))
         if hasattr(self.model, 'to_intel64'):
             self.model.to_intel64()
 
@@ -78,9 +80,11 @@ class SimpleInfer:
         cropped_depth = np.clip(cropped_depth.astype(
             np.float32) - self.depth_offset, 0, 4000) / 3000 * 255
 
-    #        cropped_depth = cropped_depth[None]
-        # 1-chに直したいなー
-        cropped_depth = np.stack([cropped_depth, cropped_depth, cropped_depth])
+        if self.in_channels == 1:
+            cropped_depth = cropped_depth[None]
+        else:
+            cropped_depth = np.stack(
+                [cropped_depth, cropped_depth, cropped_depth])
 
         s = 56
         with using_config('train', False), using_config('enable_backprop', False), using_config('use_ideep', 'auto'):
@@ -117,5 +121,6 @@ class SimpleInfer:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--file', help='bag file')
+    parser.add_argument('--weight', help='pretrained_weight')
     args = parser.parse_args()
-    SimpleInfer(args.file).run()
+    SimpleInfer(weight=args.weight, file=args.file).run()
