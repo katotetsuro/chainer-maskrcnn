@@ -20,7 +20,7 @@ class SimpleInfer:
         self.in_channels = self.model.extractor.conv1.c.W.shape[1]
         print('number of parameters:{}'.format(
             sum(p.data.size for p in self.model.params())))
-        if hasattr(self.model, 'to_intel64'):
+        if chainer.backends.intel64.is_ideep_available():
             self.model.to_intel64()
 
         # Configure depth and color streams
