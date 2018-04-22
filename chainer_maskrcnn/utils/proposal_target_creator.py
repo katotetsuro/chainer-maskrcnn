@@ -48,7 +48,7 @@ class ProposalTargetCreator(object):
         roi = np.concatenate((roi, bbox), axis=0)
 
         # assign feature levels of ground truth boxes
-        bbox_levels = map_rois_to_fpn_levels(np, bbox)
+        bbox_levels = map_rois_to_fpn_levels(bbox)
         levels = np.concatenate([levels, bbox_levels])
 
         pos_roi_per_image = np.round(self.n_sample * self.pos_ratio)

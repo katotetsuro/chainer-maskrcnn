@@ -13,15 +13,13 @@ from chainercv.links.model.faster_rcnn.utils.proposal_creator import ProposalCre
 
 # original code from Detectron
 # https://github.com/facebookresearch/Detectron/blob/master/lib/modeling/FPN.py
-def map_rois_to_fpn_levels(xp, rois, k_min=2, k_max=6):
+def map_rois_to_fpn_levels(rois, k_min=0, k_max=4):
     """Determine which FPN level each RoI in a set of RoIs should map to based
     on the heuristic in the FPN paper.
     roi: assume (R, 4), y_min, x_min, y_max, x_max
     """
-    # depthの実験をしている間の暫定措置
-    k_min = 0
-    k_max = 0
     # Compute level ids
+    xp = chainer.backends.cuda.get_array_module(rois)
     area = xp.prod(rois[:, 2:] - rois[:, :2], axis=1)
     s = xp.sqrt(area)
     s0 = 224
@@ -29,7 +27,7 @@ def map_rois_to_fpn_levels(xp, rois, k_min=2, k_max=6):
 
     # Eqn.(1) in FPN paper
     target_lvls = xp.floor(lvl0 + xp.log2(s / s0 + 1e-6))
-    target_lvls = xp.clip(target_lvls, k_min, k_max) - k_min
+    target_lvls = xp.clip(target_lvls, k_min, k_max)
     return target_lvls
 
 
@@ -163,6 +161,6 @@ class MultilevelRegionProposalNetwork(chainer.Chain):
             roi_indices.append(batch_index)
 
         rois = self.xp.concatenate(rois, axis=0)
-        levels = map_rois_to_fpn_levels(self.xp, rois)
+        levels = map_rois_to_fpn_levels(rois)
         roi_indices = self.xp.concatenate(roi_indices, axis=0)
         return locs, scores, rois, roi_indices, anchors, levels

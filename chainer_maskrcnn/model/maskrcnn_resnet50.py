@@ -138,6 +138,7 @@ class MaskRCNNResnet50(FasterRCNN):
         h = self.extractor(x)
         rpn_locs, rpn_scores, rois, roi_indices, anchor, levels =\
             self.rpn(h, img_size, scale)
+        levels = np.clip(levels, 0, len(h) - 1)
 
         # join roi and index of batch
         roi_indices = roi_indices.astype(np.float32)
