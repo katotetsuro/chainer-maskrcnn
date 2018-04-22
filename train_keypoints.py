@@ -10,6 +10,7 @@ from chainer_maskrcnn.model.fpn_maskrcnn_train_chain import FPNMaskRCNNTrainChai
 from chainer_maskrcnn.model.maskrcnn_resnet50 import MaskRCNNResnet50
 from chainer_maskrcnn.dataset.coco_dataset import COCOKeypointsLoader
 from chainer_maskrcnn.dataset.depth_dataset import DepthDataset
+from chainer_maskrcnn.utils.depth_transformer import DepthTransformer
 
 import argparse
 from os.path import exists, isfile
@@ -39,9 +40,10 @@ def load_dataset(dataset, file):
         train_data = dataset()
         dataload_end = time.time()
         print('普通の読み込み {}'.format(dataload_end - dataload_start))
-        print('次回のために保存します')
-        with open(file, 'wb') as f:
-            pickle.dump(train_data, f)
+        if file is not '':
+            print('次回のために保存します')
+            with open(file, 'wb') as f:
+                pickle.dump(train_data, f)
     return train_data
 
 
@@ -82,6 +84,9 @@ def main():
     parser.add_argument('--multi_gpu', '-m', type=int, default=0)
     parser.add_argument('--batch_size', '-b', type=int, default=1)
     parser.add_argument('--dataset', default='coco', choices=['coco', 'depth'])
+    parser.add_argument('--n_mask_convs', type=int, default=None)
+    parser.add_argument('--min_size', type=int, default=600)
+    parser.add_argument('--max_size', type=int, default=1000)
 
     args = parser.parse_args()
 
@@ -95,10 +100,13 @@ def main():
 
     if args.dataset == 'coco':
         train_data = load_dataset(COCOKeypointsLoader, 'train_data_kp.pkl')
+        n_keypoints = train_data.n_keypoints
     elif args.dataset == 'depth':
         train_data = load_dataset(
-            lambda: DepthDataset(path='data/rgbd/train.txt', root='data/rgbd/'), 'train_data_depth_kp.pkl')
-    n_keypoints = train_data.n_keypoints
+            lambda: DepthDataset(path='data/rgbd/train.txt', root='data/rgbd/'), '')
+        n_keypoints = train_data.n_keypoints
+        train_data = chainer.datasets.TransformDataset(
+            train_data, DepthTransformer())
     print(f'number of keypoints={n_keypoints}')
 
     if args.multi_gpu:
@@ -109,7 +117,7 @@ def main():
 
     faster_rcnn = MaskRCNNResnet50(
         n_fg_class=1, backbone=args.backbone, head_arch=args.head_arch,
-        n_keypoints=n_keypoints)
+        n_keypoints=n_keypoints, n_mask_convs=args.n_mask_convs, min_size=args.min_size, max_size=args.max_size)
     faster_rcnn.use_preset('evaluate')
     model = FPNMaskRCNNTrainChain(
         faster_rcnn, mask_loss_fun=lambda x, y, z, w: calc_mask_loss(x, y, z, w, num_keypoints=n_keypoints), binary_mask=False)
@@ -135,7 +143,7 @@ def main():
 
     else:
         train_iter = chainer.iterators.SerialIterator(
-            train_data, batch_size=args.batch_size, repeat=True, shuffle=False)
+            train_data, batch_size=args.batch_size, repeat=True, shuffle=True)
         updater = chainer.training.updater.StandardUpdater(
             train_iter, optimizer, device=args.gpu)
 
@@ -148,7 +156,7 @@ def main():
         trigger=(20000, 'iteration'))
 
     trainer.extend(
-        extensions.ExponentialShift('lr', 0.1), trigger=(1, 'epoch'))
+        extensions.ExponentialShift('lr', 0.1), trigger=(3, 'epoch'))
 
     log_interval = 100, 'iteration'
     trainer.extend(

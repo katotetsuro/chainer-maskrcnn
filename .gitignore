@@ -17,3 +17,6 @@ data/annotations
 data/train2014
 data/val2014
 data/rgbd
+*.stats
+*.bag
+libs

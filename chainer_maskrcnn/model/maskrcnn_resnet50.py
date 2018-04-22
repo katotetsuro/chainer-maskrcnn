@@ -11,6 +11,7 @@ from chainercv.transforms.image.resize import resize
 from chainercv.utils import non_maximum_suppression
 from .extractor.c4_backbone import C4Backbone
 from .extractor.feature_pyramid_network import FeaturePyramidNetwork
+from .extractor.darknet import Darknet
 from .rpn.multilevel_region_proposal_network import MultilevelRegionProposalNetwork
 from .head.resnet_roi_mask_head import ResnetRoIMaskHead
 from .head.light_roi_mask_head import LightRoIMaskHead
@@ -25,6 +26,7 @@ class MaskRCNNResnet50(FasterRCNN):
     def __init__(self,
                  n_fg_class,
                  n_keypoints=None,
+                 n_mask_convs=None,
                  pretrained_model=None,
                  min_size=600,
                  max_size=1000,
@@ -51,14 +53,10 @@ class MaskRCNNResnet50(FasterRCNN):
             extractor = FeaturePyramidNetwork()
             print('feat_strides:', extractor.feat_strides,
                   'spatial_scales:', extractor.spatial_scales)
-            rpn_in_channels = 256
-            rpn_mid_channels = 256  # ??
             rpn = MultilevelRegionProposalNetwork(
                 anchor_scales=extractor.anchor_scales, feat_strides=extractor.feat_strides)
         elif backbone == 'c4':
             extractor = C4Backbone('auto')
-            rpn_in_channels = 1024
-            rpn_mid_channels = 516  # ??
             rpn = RegionProposalNetwork(
                 1024,
                 516,
@@ -68,9 +66,15 @@ class MaskRCNNResnet50(FasterRCNN):
                 initialW=rpn_initialW,
                 proposal_creator_params=proposal_creator_params,
             )
+        elif backbone == 'darknet':
+            extractor = Darknet()
+            rpn = MultilevelRegionProposalNetwork(
+                anchor_scales=extractor.anchor_scales, feat_strides=extractor.feat_strides, in_channels=256,
+                proposal_creator_params={'n_test_pre_nms': 50,
+                                         'n_test_post_nms': 10})
         else:
             raise ValueError(
-                'select backbone frome fpn or c4: {}'.format(backbone))
+                'unknown backbone: {}'.format(backbone))
 
         if head_arch == 'res5':
             head = ResnetRoIMaskHead(
@@ -103,11 +107,14 @@ class MaskRCNNResnet50(FasterRCNN):
             if n_keypoints == None:
                 raise ValueError(
                     'n_keypoints must be set in keypoint detection')
+            if n_mask_convs == None:
+                n_mask_convs = 8
             head = FPNRoIKeypointHead(
                 2,
                 n_keypoints,
                 roi_size_box=7,
                 roi_size_mask=14,
+                n_mask_convs=n_mask_convs,
                 loc_initialW=loc_initialW,
                 score_initialW=score_initialW,
                 mask_initialW=chainer.initializers.Normal(0.01))
@@ -131,6 +138,7 @@ class MaskRCNNResnet50(FasterRCNN):
         h = self.extractor(x)
         rpn_locs, rpn_scores, rois, roi_indices, anchor, levels =\
             self.rpn(h, img_size, scale)
+        levels = np.clip(levels, 0, len(h) - 1)
 
         # join roi and index of batch
         roi_indices = roi_indices.astype(np.float32)
@@ -161,7 +169,7 @@ class MaskRCNNResnet50(FasterRCNN):
         masks = []
         for img, size in zip(prepared_imgs, sizes):
             with chainer.using_config('train', False), \
-                    chainer.function.no_backprop_mode():
+                    chainer.using_config('enable_backprop', False):
                 img_var = chainer.Variable(self.xp.asarray(img[None]))
                 scale = img_var.shape[3] / size[1]
                 roi_cls_locs, roi_scores, rois, roi_indices, levels = self.__call__(
@@ -208,7 +216,7 @@ class MaskRCNNResnet50(FasterRCNN):
             mask_per_image = []
             if len(label) > 0:
                 with chainer.using_config('train', False), \
-                        chainer.function.no_backprop_mode():
+                        chainer.using_config('enable_backprop', False):
                     # because we are assuming batch size=1, all elements of roi_indices is zero.
                     roi_indices = self.xp.zeros(roi.shape[0], dtype=np.float32)
                     bbox_gpu = cuda.to_gpu(
@@ -232,7 +240,7 @@ class MaskRCNNResnet50(FasterRCNN):
 
                     mask_per_image.append(m)
                 else:
-                    mask = mask.reshape((mask.shape[0], 17, -1)).data
+                    mask = mask.reshape((mask.shape[0], 20, -1)).data
                     mask = cuda.to_cpu(mask)
                     mask_per_image.append(mask)
 

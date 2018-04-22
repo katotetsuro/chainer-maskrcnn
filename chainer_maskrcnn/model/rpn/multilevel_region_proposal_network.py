@@ -8,18 +8,18 @@ from chainercv.links.model.faster_rcnn.region_proposal_network import _enumerate
 
 from chainercv.links.model.faster_rcnn.utils.generate_anchor_base import \
     generate_anchor_base
-#from proposal_creator import ProposalCreator
 from chainercv.links.model.faster_rcnn.utils.proposal_creator import ProposalCreator
 
 
 # original code from Detectron
 # https://github.com/facebookresearch/Detectron/blob/master/lib/modeling/FPN.py
-def map_rois_to_fpn_levels(xp, rois, k_min=2, k_max=6):
+def map_rois_to_fpn_levels(rois, k_min=0, k_max=4):
     """Determine which FPN level each RoI in a set of RoIs should map to based
     on the heuristic in the FPN paper.
     roi: assume (R, 4), y_min, x_min, y_max, x_max
     """
     # Compute level ids
+    xp = chainer.backends.cuda.get_array_module(rois)
     area = xp.prod(rois[:, 2:] - rois[:, :2], axis=1)
     s = xp.sqrt(area)
     s0 = 224
@@ -27,7 +27,7 @@ def map_rois_to_fpn_levels(xp, rois, k_min=2, k_max=6):
 
     # Eqn.(1) in FPN paper
     target_lvls = xp.floor(lvl0 + xp.log2(s / s0 + 1e-6))
-    target_lvls = xp.clip(target_lvls, k_min, k_max) - k_min
+    target_lvls = xp.clip(target_lvls, k_min, k_max)
     return target_lvls
 
 
@@ -119,10 +119,10 @@ class MultilevelRegionProposalNetwork(chainer.Chain):
                 Its shape is :math:`(H W A, 4)`.
         """
 
-        locs = list()
-        scores = list()
-        fg_scores = list()
-        anchors = list()
+        locs = []
+        scores = []
+        fg_scores = []
+        anchors = []
         for i, x in enumerate(xs):
             n, _, hh, ww = x.shape
             anchor = _enumerate_shifted_anchor(
@@ -151,8 +151,8 @@ class MultilevelRegionProposalNetwork(chainer.Chain):
         fg_scores = F.concat(fg_scores, axis=1)
         anchors = self.xp.concatenate(anchors, axis=0)
 
-        rois = list()
-        roi_indices = list()
+        rois = []
+        roi_indices = []
         for i in range(n):
             roi = self.proposal_layer(
                 locs[i].array, fg_scores[i].array, anchors, img_size, scale=scale)
@@ -161,6 +161,6 @@ class MultilevelRegionProposalNetwork(chainer.Chain):
             roi_indices.append(batch_index)
 
         rois = self.xp.concatenate(rois, axis=0)
-        levels = map_rois_to_fpn_levels(self.xp, rois)
+        levels = map_rois_to_fpn_levels(rois)
         roi_indices = self.xp.concatenate(roi_indices, axis=0)
         return locs, scores, rois, roi_indices, anchors, levels
