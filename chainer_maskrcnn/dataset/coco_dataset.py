@@ -38,7 +38,7 @@ class COCOMaskLoader(chainer.dataset.DatasetMixin):
         print('before filter: {}'.format(len(img_ids)))
         img_ids = list(
             filter(lambda x: self._contain_large_annotation_only(x), img_ids))
-        print('after filter: {)}'.format(len(img_ids)))
+        print('after filter: {}'.format(len(img_ids)))
 
         self.img_infos = [(i['file_name'], i['id'])
                           for i in self.coco.loadImgs(img_ids)]
@@ -117,7 +117,8 @@ class COCOKeypointsLoader(chainer.dataset.DatasetMixin):
         if split == 'validation':
             split = 'val'
 
-        ann_file = '{}/person_keypoints_{}{}.json'.format(anno_dir, split, data_type) 
+        ann_file = '{}/person_keypoints_{}{}.json'.format(
+            anno_dir, split, data_type)
         self.coco = COCO(ann_file)
 
         self.img_dir = '{}/{}{}'.format(img_dir, split, data_type)

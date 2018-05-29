@@ -104,7 +104,8 @@ def main():
         print('pklからの読み込み {}'.format(dataload_end - dataload_start))
     else:
         dataload_start = time.time()
-        coco_train_data = COCOMaskLoader(category_filter=labels)
+        coco_train_data = COCOMaskLoader(
+            category_filter=labels, data_type='2017')
         dataload_end = time.time()
         print('普通の読み込み {}'.format(dataload_end - dataload_start))
         print('次回のために保存します')
