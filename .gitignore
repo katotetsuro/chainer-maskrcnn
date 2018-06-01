@@ -20,3 +20,4 @@ data/rgbd
 *.stats
 *.bag
 libs
+src
