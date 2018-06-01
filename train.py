@@ -14,6 +14,7 @@ import argparse
 from os.path import exists, isfile
 import time
 import _pickle as pickle
+import warnings
 
 
 class Transform(object):
@@ -161,7 +162,12 @@ def main():
     save_args(args, args.out)
     trainer.extend(CommandsExtension(), trigger=(100, 'iteration'))
 
-    trainer.run()
+    try:
+        np.seterr(all='warn')
+        trainer.run()
+    except Warning:
+        import pdb
+        pdb.set_trace()
 
 
 if __name__ == '__main__':
