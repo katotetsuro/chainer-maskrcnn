@@ -230,7 +230,7 @@ class MaskRCNNResnet50(FasterRCNN):
                 if self.predict_mask:
                     mask = F.sigmoid(mask).data
                     mask = mask[np.arange(mask.shape[0]), label]
-                    maskをresizeする
+                    # maskをresizeする
                     for i, (b, m) in enumerate(zip(bbox, mask)):
                         w = b[3] - b[1]
                         h = b[2] - b[0]
@@ -238,7 +238,7 @@ class MaskRCNNResnet50(FasterRCNN):
                         m = m.astype(np.uint8)
                         _, m = cv2.threshold(m, 127, 255, cv2.THRESH_BINARY)
 
-                    mask_per_image.append(m)
+                        mask_per_image.append(m)
                 else:
                     mask = mask.reshape((mask.shape[0], 20, -1)).data
                     mask = cuda.to_cpu(mask)
