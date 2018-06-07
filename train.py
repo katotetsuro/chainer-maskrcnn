@@ -56,9 +56,9 @@ def main():
     parser.add_argument(
         '--label_file', '-f', type=str, default='data/label_coco.txt')
     parser.add_argument('--backbone', type=str, default='fpn')
-    parser.add_argument('--head_arch', '-a', type=str, default='fpn')
-    parser.add_argument('--multi_gpu', '-m', type=int, default=0)
-    parser.add_argument('--batch_size', '-b', type=int, default=1)
+    parser.add_argument('--head-arch', '-a', type=str, default='fpn')
+    parser.add_argument('--multi-gpu', '-m', type=int, default=0)
+    parser.add_argument('--batch-size', '-b', type=int, default=1)
 
     args = parser.parse_args()
 
