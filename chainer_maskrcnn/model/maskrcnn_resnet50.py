@@ -213,7 +213,8 @@ class MaskRCNNResnet50(FasterRCNN):
                                                              raw_roi, raw_levels)
 
             # predict only mask based on detected roi
-            mask_per_image = []
+            mask_per_image = np.zeros(
+                (len(bbox),) + size, dtype=np.bool) if self.predict_mask else []
             if len(label) > 0:
                 with chainer.using_config('train', False), \
                         chainer.using_config('enable_backprop', False):
@@ -230,15 +231,19 @@ class MaskRCNNResnet50(FasterRCNN):
                 if self.predict_mask:
                     mask = F.sigmoid(mask).data
                     mask = mask[np.arange(mask.shape[0]), label]
-                    # maskをresizeする
+                    # maskをresizeして、元の画像と同じサイズのmask画像を作る
                     for i, (b, m) in enumerate(zip(bbox, mask)):
                         w = b[3] - b[1]
                         h = b[2] - b[0]
                         m = cv2.resize(m, (w, h)) * 255
                         m = m.astype(np.uint8)
                         _, m = cv2.threshold(m, 127, 255, cv2.THRESH_BINARY)
+                        mask_h, mask_w = m.shape
+                        s, t = b[:2].astype(np.int32)
+                        # todo: 本当はb[0]+mask_h == b[2] になるはずなんだけど、1pxずれたりする?
+                        mask_per_image[i, s:(s+mask_h),
+                                       t:(t+mask_w)] = m.astype(np.bool)
 
-                        mask_per_image.append(m)
                 else:
                     mask = mask.reshape((mask.shape[0], 20, -1)).data
                     mask = cuda.to_cpu(mask)
