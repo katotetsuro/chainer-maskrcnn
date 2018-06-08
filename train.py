@@ -99,7 +99,7 @@ def main():
 
     train_data = COCOMaskLoader(category_filter=labels, data_type='2017')
     train_data = TransformDataset(train_data, Transform(faster_rcnn))
-    test__data = COCOMaskLoader(
+    test_data = COCOMaskLoader(
         category_filter=labels, data_type='2017', split='val')
 
     if args.multi_gpu:
