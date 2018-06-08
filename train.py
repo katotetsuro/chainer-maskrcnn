@@ -161,17 +161,9 @@ def main():
     trainer.extend(extensions.ProgressBar(update_interval=200))
     trainer.extend(extensions.dump_graph('main/loss'))
 
-    def eval_func(model, img, bbox, gt_labels, gt_masks):
-        pred = model.predict(img)
-        pred_masks = pred[3]
-        pred_labels = pred[1]
-        pred_scores = pred[2]
-        eval_instance_segmentation_voc(
-            pred_masks, pred_labels, pred_scores, gt_masks, gt_labels)
-
     evaluator = InstanceSegmentationVOCEvaluator(
         test_iter, model.faster_rcnn, label_names=labels)
-    trainer.extend(, trigger=(100, 'iteration'))
+    trainer.extend(evaluator, trigger=(100, 'iteration'))
 
     save_args(args, args.out)
     trainer.extend(CommandsExtension(), trigger=(100, 'iteration'))
