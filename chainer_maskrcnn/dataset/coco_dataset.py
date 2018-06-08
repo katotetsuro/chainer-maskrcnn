@@ -35,11 +35,6 @@ class COCOMaskLoader(chainer.dataset.DatasetMixin):
         for cat_id in self.cat_ids:
             img_ids |= set(self.coco.getImgIds(catIds=[cat_id]))
 
-        print('before filter: {}'.format(len(img_ids)))
-        img_ids = list(
-            filter(lambda x: self._contain_large_annotation_only(x), img_ids))
-        print('after filter: {}'.format(len(img_ids)))
-
         self.img_infos = [(i['file_name'], i['id'])
                           for i in self.coco.loadImgs(img_ids)]
         self.length = len(self.img_infos)

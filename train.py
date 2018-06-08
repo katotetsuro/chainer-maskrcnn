@@ -2,6 +2,7 @@ import chainer
 from chainer.datasets import TransformDataset
 from chainer.training import extensions
 from chainercv import transforms
+from chainercv.evaluations import eval_instance_segmentation_voc
 from chainerui.utils import save_args
 from chainerui.extensions import CommandsExtension
 import cv2
@@ -28,6 +29,7 @@ class Transform(object):
         _, o_H, o_W = img.shape
         scale = o_H / H
         bbox = transforms.resize_bbox(bbox, (H, W), (o_H, o_W))
+        bbox[:, 2:] = np.maximum(bbox[:, 2:], bbox[:, 2:] + 1)
         for i, im in enumerate(label_img):
             label_img[i] = cv2.resize(
                 im, (o_W, o_H), interpolation=cv2.INTER_NEAREST)
@@ -95,25 +97,10 @@ def main():
     optimizer.setup(model)
     optimizer.add_hook(chainer.optimizer.WeightDecay(rate=0.0005))
 
-    pkl_file = 'train_data.pkl'
-    if isfile(pkl_file):
-        print('pklから読み込みます')
-        dataload_start = time.time()
-        with open(pkl_file, 'rb') as f:
-            coco_train_data = pickle.load(f)
-        dataload_end = time.time()
-        print('pklからの読み込み {}'.format(dataload_end - dataload_start))
-    else:
-        dataload_start = time.time()
-        coco_train_data = COCOMaskLoader(
-            category_filter=labels, data_type='2017')
-        dataload_end = time.time()
-        print('普通の読み込み {}'.format(dataload_end - dataload_start))
-        print('次回のために保存します')
-        with open(pkl_file, 'wb') as f:
-            pickle.dump(coco_train_data, f)
-
-    train_data = TransformDataset(coco_train_data, Transform(faster_rcnn))
+    train_data = COCOMaskLoader(category_filter=labels, data_type='2017')
+    train_data = TransformDataset(train_data, Transform(faster_rcnn))
+    test__data = COCOMaskLoader(
+        category_filter=labels, data_type='2017', split='val')
 
     if args.multi_gpu:
         train_iters = [chainer.iterators.SerialIterator(
@@ -124,6 +111,8 @@ def main():
     else:
         train_iter = chainer.iterators.SerialIterator(
             train_data, batch_size=args.batch_size, repeat=True, shuffle=False)
+        test_iter = chainer.iterators.MultithreadIterator(
+            test_data, batch_size=args.batch_size, repeat=False, shuffle=False)
         updater = chainer.training.updater.StandardUpdater(
             train_iter, optimizer, device=args.gpu)
 
@@ -154,10 +143,22 @@ def main():
             'main/roi_cls_loss',
             'main/rpn_loc_loss',
             'main/rpn_cls_loss',
+            'validation/main/map'
         ]),
         trigger=(100, 'iteration'))
     trainer.extend(extensions.ProgressBar(update_interval=200))
     trainer.extend(extensions.dump_graph('main/loss'))
+
+    def eval_func(model, img, bbox, gt_labels, gt_masks):
+        pred = model.predict(img)
+        pred_masks = pred[3]
+        pred_labels = pred[1]
+        pred_scores = pred[2]
+        eval_instance_segmentation_voc(
+            pred_masks, pred_labels, pred_scores, gt_masks, gt_labels)
+
+    trainer.extend(extensions.Evaluator(test_iter, None,
+                                        eval_func=eval_func), trigger=(100, 'iteration'))
 
     save_args(args, args.out)
     trainer.extend(CommandsExtension(), trigger=(100, 'iteration'))
