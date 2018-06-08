@@ -231,6 +231,7 @@ class MaskRCNNResnet50(FasterRCNN):
                 if self.predict_mask:
                     mask = F.sigmoid(mask).data
                     mask = mask[np.arange(mask.shape[0]), label]
+                    mask = cuda.to_cpu(mask)
                     # maskをresizeして、元の画像と同じサイズのmask画像を作る
                     for i, (b, m) in enumerate(zip(bbox, mask)):
                         w = b[3] - b[1]
@@ -254,7 +255,8 @@ class MaskRCNNResnet50(FasterRCNN):
             scores.append(score)
             masks.append(mask_per_image)
 
-        return bboxes, labels, scores, masks
+        # return bboxes, labels, scores, masks
+        return masks, labels, scores
 
     def prepare(self, img):
         _, H, W = img.shape

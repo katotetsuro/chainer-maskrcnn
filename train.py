@@ -2,7 +2,7 @@ import chainer
 from chainer.datasets import TransformDataset
 from chainer.training import extensions
 from chainercv import transforms
-from chainercv.evaluations import eval_instance_segmentation_voc
+from chainer_maskrcnn.extentions.evaluator.instance_segmentation_voc_evaluator import InstanceSegmentationVOCEvaluator
 from chainerui.utils import save_args
 from chainerui.extensions import CommandsExtension
 import cv2
@@ -36,11 +36,22 @@ class Transform(object):
 
         return img, bbox, label, label_img, scale
 
-# mask
-# https://engineer.dena.jp/2017/12/chainercvmask-r-cnn.html
+
+class EvaluatorTransform():
+    """
+    chainercvのevalに合うようにTransform
+    """
+
+    def __call__(self, in_data):
+        i, b, l, m = in_data
+        return i, np.stack(m), l
 
 
 def calc_mask_loss(roi_cls_mask, gt_roi_mask, xp, gt_roi_label):
+    """
+    mask loss
+    https://engineer.dena.jp/2017/12/chainercvmask-r-cnn.html
+    """
     roi_mask = roi_cls_mask[xp.arange(
         roi_cls_mask.shape[0]), gt_roi_label - 1]
     return chainer.functions.sigmoid_cross_entropy(roi_mask[:gt_roi_mask.shape[0]],
@@ -101,6 +112,7 @@ def main():
     train_data = TransformDataset(train_data, Transform(faster_rcnn))
     test_data = COCOMaskLoader(
         category_filter=labels, data_type='2017', split='val')
+    test_data = TransformDataset(test_data, EvaluatorTransform())
 
     if args.multi_gpu:
         train_iters = [chainer.iterators.SerialIterator(
@@ -157,8 +169,9 @@ def main():
         eval_instance_segmentation_voc(
             pred_masks, pred_labels, pred_scores, gt_masks, gt_labels)
 
-    trainer.extend(extensions.Evaluator(test_iter, None,
-                                        eval_func=eval_func), trigger=(100, 'iteration'))
+    evaluator = InstanceSegmentationVOCEvaluator(
+        test_iter, model.faster_rcnn, label_names=labels)
+    trainer.extend(, trigger=(100, 'iteration'))
 
     save_args(args, args.out)
     trainer.extend(CommandsExtension(), trigger=(100, 'iteration'))
