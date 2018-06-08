@@ -21,3 +21,4 @@ data/rgbd
 *.bag
 libs
 src
+.vscode
