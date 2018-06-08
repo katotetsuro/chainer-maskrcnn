@@ -121,9 +121,9 @@ def main():
             train_iters, optimizer, device=range(8))
 
     else:
-        train_iter = chainer.iterators.SerialIterator(
+        train_iter = chainer.iterators.MultithreadIterator(
             train_data, batch_size=args.batch_size, repeat=True, shuffle=False)
-        test_iter = chainer.iterators.MultithreadIterator(
+        test_iter = chainer.iterators.SerialIterator(
             test_data, batch_size=args.batch_size, repeat=False, shuffle=False)
         updater = chainer.training.updater.StandardUpdater(
             train_iter, optimizer, device=args.gpu)
