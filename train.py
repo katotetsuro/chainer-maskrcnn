@@ -2,7 +2,7 @@ import chainer
 from chainer.datasets import TransformDataset
 from chainer.training import extensions
 from chainercv import transforms
-from chainer_maskrcnn.extentions.evaluator.instance_segmentation_voc_evaluator import InstanceSegmentationVOCEvaluator
+from chainercv.extensions.evaluator.instance_segmentation_voc_evaluator import InstanceSegmentationVOCEvaluator
 from chainerui.utils import save_args
 from chainerui.extensions import CommandsExtension
 import cv2
