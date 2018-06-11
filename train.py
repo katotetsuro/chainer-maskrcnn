@@ -2,7 +2,7 @@ import chainer
 from chainer.datasets import TransformDataset
 from chainer.training import extensions
 from chainercv import transforms
-from chainer_maskrcnn.extentions.evaluator.instance_segmentation_voc_evaluator import InstanceSegmentationVOCEvaluator
+from .instance_segmentation_voc_evaluator import InstanceSegmentationVOCEvaluator
 from chainerui.utils import save_args
 from chainerui.extensions import CommandsExtension
 import cv2
@@ -163,7 +163,7 @@ def main():
 
     evaluator = InstanceSegmentationVOCEvaluator(
         test_iter, model.faster_rcnn, label_names=labels)
-    trainer.extend(evaluator, trigger=(100, 'iteration'))
+    trainer.extend(evaluator, trigger=(10000, 'iteration'))
 
     save_args(args, args.out)
     trainer.extend(CommandsExtension(), trigger=(100, 'iteration'))
