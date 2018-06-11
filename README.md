@@ -65,4 +65,4 @@ MSCOCOをダウンロードしてdata以下に展開
 
 [chainercvを用いたMask R-CNNの実装](https://engineer.dena.jp/2017/12/chainercvmask-r-cnn.html)
 
-MaskRCNNResnet50, ProposalTargetCreatorの実装で思いっきり参考にさせていただいています。
+MaskRCNN, ProposalTargetCreatorの実装で思いっきり参考にさせていただいています。

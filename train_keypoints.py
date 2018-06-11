@@ -7,7 +7,7 @@ from chainerui.extensions import CommandsExtension
 import cv2
 import numpy as np
 from chainer_maskrcnn.model.fpn_maskrcnn_train_chain import FPNMaskRCNNTrainChain
-from chainer_maskrcnn.model.maskrcnn_resnet50 import MaskRCNNResnet50
+from chainer_maskrcnn.model.maskrcnn import MaskRCNN
 from chainer_maskrcnn.dataset.coco_dataset import COCOKeypointsLoader
 from chainer_maskrcnn.dataset.depth_dataset import DepthDataset
 from chainer_maskrcnn.utils.depth_transformer import DepthTransformer
@@ -115,7 +115,7 @@ def main():
             print('MultiprocessParallelUpdater is not available')
             args.multi_gpu = 0
 
-    faster_rcnn = MaskRCNNResnet50(
+    faster_rcnn = MaskRCNN(
         n_fg_class=1, backbone=args.backbone, head_arch=args.head_arch,
         n_keypoints=n_keypoints, n_mask_convs=args.n_mask_convs, min_size=args.min_size, max_size=args.max_size)
     faster_rcnn.use_preset('evaluate')

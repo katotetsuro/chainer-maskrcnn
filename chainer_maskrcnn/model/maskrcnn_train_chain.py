@@ -5,7 +5,7 @@ from chainercv.links.model.faster_rcnn.utils.anchor_target_creator import\
 from chainercv.links.model.faster_rcnn.faster_rcnn_train_chain import FasterRCNNTrainChain, _smooth_l1_loss, _fast_rcnn_loc_loss
 import cv2
 import numpy as np
-from .maskrcnn_resnet50 import MaskRCNNResnet50
+from .maskrcnn import MaskRCNN
 from chainer_maskrcnn.utils.proposal_target_creator import ProposalTargetCreator
 from .extractor.feature_pyramid_network import FeaturePyramidNetwork
 from .extractor.c4_backbone import C4Backbone

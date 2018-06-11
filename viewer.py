@@ -7,15 +7,15 @@ import cv2
 
 import chainer
 from chainer import using_config
-from chainer_maskrcnn.model.maskrcnn_resnet50 import MaskRCNNResnet50
+from chainer_maskrcnn.model.maskrcnn import MaskRCNN
 
 import vis
 
 
 class SimpleInfer:
     def __init__(self, weight, file=None):
-        self.model = MaskRCNNResnet50(1, n_keypoints=20, n_mask_convs=2,
-                                      min_size=240, backbone='darknet', head_arch='fpn_keypoint')
+        self.model = MaskRCNN(1, n_keypoints=20, n_mask_convs=2,
+                              min_size=240, backbone='darknet', head_arch='fpn_keypoint')
         chainer.serializers.load_npz(weight, self.model, strict=True)
         self.in_channels = self.model.extractor.conv1.c.W.shape[1]
         print('number of parameters:{}'.format(

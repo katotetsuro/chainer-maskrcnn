@@ -2,13 +2,13 @@ import chainer
 from chainer.datasets import TransformDataset
 from chainer.training import extensions
 from chainercv import transforms
-from .instance_segmentation_voc_evaluator import InstanceSegmentationVOCEvaluator
+from chainer_maskrcnn.extentions.evaluator.instance_segmentation_voc_evaluator import InstanceSegmentationVOCEvaluator
 from chainerui.utils import save_args
 from chainerui.extensions import CommandsExtension
 import cv2
 import numpy as np
 from chainer_maskrcnn.model.fpn_maskrcnn_train_chain import FPNMaskRCNNTrainChain
-from chainer_maskrcnn.model.maskrcnn_resnet50 import MaskRCNNResnet50
+from chainer_maskrcnn.model.maskrcnn import MaskRCNN
 from chainer_maskrcnn.dataset.coco_dataset import COCOMaskLoader
 
 import argparse
@@ -92,7 +92,7 @@ def main():
     with open(args.label_file, "r") as f:
         labels = f.read().strip().split("\n")
 
-    faster_rcnn = MaskRCNNResnet50(
+    faster_rcnn = MaskRCNN(
         n_fg_class=len(labels), backbone=args.backbone, head_arch=args.head_arch)
     faster_rcnn.use_preset('evaluate')
     model = FPNMaskRCNNTrainChain(faster_rcnn, mask_loss_fun=calc_mask_loss)

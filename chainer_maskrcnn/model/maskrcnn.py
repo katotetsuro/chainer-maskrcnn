@@ -20,7 +20,7 @@ from .head.fpn_roi_keypoint_head import FPNRoIKeypointHead
 import cv2
 
 
-class MaskRCNNResnet50(FasterRCNN):
+class MaskRCNN(FasterRCNN):
     feat_stride = 16
 
     def __init__(self,
